@@ -76,33 +76,33 @@ class DivergenceAggregator:
         inst_data = data.get("institutional", {})
         dim_results["institutional"] = self._institutional.compute(
             ticker,
-            analyst_data=inst_data.get("analyst"),
-            insider_data=inst_data.get("insider"),
+            analyst_data=inst_data.get("analyst_data"),
+            insider_data=inst_data.get("insider_data"),
         )
 
         opt_data = data.get("options", {})
         dim_results["options"] = self._options.compute(
             ticker,
-            put_call_data=opt_data.get("put_call"),
-            vix_data=opt_data.get("vix"),
+            put_call_data=opt_data.get("put_call_data"),
+            vix_data=opt_data.get("vix_data"),
         )
 
-        pa_data = data.get("price_action")
+        pa_data = data.get("price_action", {})
         dim_results["price_action"] = self._price_action.compute(
             ticker,
-            price_data=pa_data,
+            price_data=pa_data.get("price_data"),
         )
 
-        news_data = data.get("news")
+        news_data = data.get("news", {})
         dim_results["news"] = self._news.compute(
             ticker,
-            sentiment_data=news_data,
+            sentiment_data=news_data.get("sentiment_data"),
         )
 
         ret_data = data.get("retail", {})
         dim_results["retail"] = self._retail.compute(
             ticker,
-            social_data=ret_data.get("social"),
+            social_data=ret_data.get("social_data"),
             fear_greed=ret_data.get("fear_greed"),
         )
 

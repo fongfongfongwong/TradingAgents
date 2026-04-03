@@ -15,30 +15,21 @@ def _full_raw_data(
     """Build a full 5-dimension raw_data dict matching actual dimension APIs."""
     return {
         "institutional": {
-            "analyst": {"strong_buy": 10, "buy": 5, "hold": 3, "sell": 1, "strong_sell": 0},
-            "insider": {"net_buying": 0.6, "total_volume": 1.0},
+            "analyst_data": {"strong_buy": 10, "buy": 5, "hold": 3, "sell": 1, "strong_sell": 0},
+            "insider_data": {"net_buying": 0.6, "total_volume": 1.0},
         },
         "options": {
-            "put_call": {"ratio": 0.7},
-            "vix": {"level": 15.0},
+            "put_call_data": {"ratio": 0.7},
+            "vix_data": {"level": 15.0},
         },
-        # PriceActionDimension.compute(ticker, price_data=...)
         "price_action": {
-            "current_price": 180.0,
-            "sma_50": 170.0,
-            "sma_200": 160.0,
-            "rsi_14": 55.0,
+            "price_data": {"current_price": 180.0, "sma_50": 170.0, "sma_200": 160.0, "rsi_14": 55.0},
         },
-        # NewsDimension.compute(ticker, sentiment_data=...)
         "news": {
-            "bullish_percent": 0.65,
-            "bearish_percent": 0.20,
-            "company_news_score": 0.4,
-            "articles_in_last_week": 25,
+            "sentiment_data": {"bullish_percent": 0.65, "bearish_percent": 0.20, "company_news_score": 0.4, "articles_in_last_week": 25},
         },
-        # RetailDimension.compute(ticker, social_data=..., fear_greed=...)
         "retail": {
-            "social": {"mentions": 300, "mentions_24h_ago": 200},
+            "social_data": {"mentions": 300, "mentions_24h_ago": 200},
             "fear_greed": {"value": 40, "aaii_bull_bear_spread": 10},
         },
         "regime": {"vix": regime_vix, "breadth": regime_breadth, "put_call_ratio": regime_pc},
@@ -105,10 +96,10 @@ class TestMissingDimensions:
         agg = DivergenceAggregator()
         data = {
             "institutional": {
-                "analyst": {"strong_buy": 10, "buy": 5, "hold": 3, "sell": 1, "strong_sell": 0},
+                "analyst_data": {"strong_buy": 10, "buy": 5, "hold": 3, "sell": 1, "strong_sell": 0},
             },
             "options": {
-                "put_call": {"ratio": 0.7},
+                "put_call_data": {"ratio": 0.7},
             },
             "regime": {"vix": 15.0},
         }
@@ -121,7 +112,7 @@ class TestMissingDimensions:
         full = agg.compute("AAPL", raw_data=_risk_on_data())
         partial_data = {
             "institutional": {
-                "analyst": {"strong_buy": 10, "buy": 5, "hold": 3, "sell": 1, "strong_sell": 0},
+                "analyst_data": {"strong_buy": 10, "buy": 5, "hold": 3, "sell": 1, "strong_sell": 0},
             },
             "regime": {"vix": 15.0},
         }
@@ -134,8 +125,8 @@ class TestMissingDimensions:
         # Only provide institutional data
         data = {
             "institutional": {
-                "analyst": {"strong_buy": 10, "buy": 5, "hold": 3, "sell": 1, "strong_sell": 0},
-                "insider": {"net_buying": 0.5, "total_volume": 1.0},
+                "analyst_data": {"strong_buy": 10, "buy": 5, "hold": 3, "sell": 1, "strong_sell": 0},
+                "insider_data": {"net_buying": 0.5, "total_volume": 1.0},
             },
             "regime": {"vix": 15.0},
         }
