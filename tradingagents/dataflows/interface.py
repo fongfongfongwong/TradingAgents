@@ -63,7 +63,38 @@ TOOLS_CATEGORIES = {
 VENDOR_LIST = [
     "yfinance",
     "alpha_vantage",
+    "capitaliq",
 ]
+
+# Capital IQ vendor methods (lazy import to avoid psycopg2 dependency if not used)
+def _get_capitaliq_methods():
+    try:
+        from .connectors._capitaliq_provider import (
+            get_capitaliq_stock,
+            get_capitaliq_indicator,
+            get_capitaliq_fundamentals,
+            get_capitaliq_balance_sheet,
+            get_capitaliq_cashflow,
+            get_capitaliq_income_statement,
+            get_capitaliq_news,
+            get_capitaliq_global_news,
+            get_capitaliq_insider_transactions,
+        )
+        return {
+            "get_stock_data": get_capitaliq_stock,
+            "get_indicators": get_capitaliq_indicator,
+            "get_fundamentals": get_capitaliq_fundamentals,
+            "get_balance_sheet": get_capitaliq_balance_sheet,
+            "get_cashflow": get_capitaliq_cashflow,
+            "get_income_statement": get_capitaliq_income_statement,
+            "get_news": get_capitaliq_news,
+            "get_global_news": get_capitaliq_global_news,
+            "get_insider_transactions": get_capitaliq_insider_transactions,
+        }
+    except ImportError:
+        return {}
+
+_capitaliq_methods = _get_capitaliq_methods()
 
 # Mapping of methods to their vendor-specific implementations
 VENDOR_METHODS = {
@@ -108,6 +139,11 @@ VENDOR_METHODS = {
         "yfinance": get_yfinance_insider_transactions,
     },
 }
+
+# Register Capital IQ methods if available
+for method_name, ciq_func in _capitaliq_methods.items():
+    if method_name in VENDOR_METHODS:
+        VENDOR_METHODS[method_name]["capitaliq"] = ciq_func
 
 def get_category_for_method(method: str) -> str:
     """Get the category that contains the specified method."""
