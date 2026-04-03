@@ -142,3 +142,10 @@ if __name__ == "__main__":
 
     except Exception as e:
         print(f"Error during recommendation: {str(e)}")
+
+
+# Hybrid memory upgrade - import for convenience
+try:
+    from tradingagents.memory.financial_memory import HybridFinancialMemory
+except ImportError:
+    HybridFinancialMemory = None  # Optional upgrade

@@ -43,6 +43,22 @@ class ConditionalLogic:
             return "tools_fundamentals"
         return "Msg Clear Fundamentals"
 
+    def should_continue_options(self, state: AgentState):
+        """Determine if options analysis should continue."""
+        messages = state["messages"]
+        last_message = messages[-1]
+        if last_message.tool_calls:
+            return "tools_options"
+        return "Msg Clear Options"
+
+    def should_continue_macro(self, state: AgentState):
+        """Determine if macro analysis should continue."""
+        messages = state["messages"]
+        last_message = messages[-1]
+        if last_message.tool_calls:
+            return "tools_macro"
+        return "Msg Clear Macro"
+
     def should_continue_debate(self, state: AgentState) -> str:
         """Determine if debate should continue."""
 

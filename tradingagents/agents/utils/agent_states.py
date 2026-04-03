@@ -74,3 +74,10 @@ class AgentState(MessagesState):
         RiskDebateState, "Current state of the debate on evaluating risk"
     ]
     final_trade_decision: Annotated[str, "Final decision made by the Risk Analysts"]
+
+    # new analyst reports
+    options_report: Annotated[str, "Report from the Options Analyst"]
+    macro_report: Annotated[str, "Report from the Macro Analyst"]
+
+    # divergence engine
+    divergence_report: Annotated[str, "Report from the Divergence Engine"]

@@ -13,6 +13,7 @@ from tradingagents.llm_clients import create_llm_client
 from tradingagents.agents import *
 from tradingagents.default_config import DEFAULT_CONFIG
 from tradingagents.agents.utils.memory import FinancialSituationMemory
+from tradingagents.memory.factory import create_memory
 from tradingagents.agents.utils.agent_states import (
     AgentState,
     InvestDebateState,
@@ -32,6 +33,8 @@ from tradingagents.agents.utils.agent_utils import (
     get_insider_transactions,
     get_global_news
 )
+from tradingagents.agents.utils.divergence_tools import get_divergence_report
+from tradingagents.agents.utils.macro_tools import get_macro_data
 
 from .conditional_logic import ConditionalLogic
 from .setup import GraphSetup
@@ -94,12 +97,12 @@ class TradingAgentsGraph:
         self.deep_thinking_llm = deep_client.get_llm()
         self.quick_thinking_llm = quick_client.get_llm()
         
-        # Initialize memories
-        self.bull_memory = FinancialSituationMemory("bull_memory", self.config)
-        self.bear_memory = FinancialSituationMemory("bear_memory", self.config)
-        self.trader_memory = FinancialSituationMemory("trader_memory", self.config)
-        self.invest_judge_memory = FinancialSituationMemory("invest_judge_memory", self.config)
-        self.portfolio_manager_memory = FinancialSituationMemory("portfolio_manager_memory", self.config)
+        # Initialize memories (factory returns the appropriate backend)
+        self.bull_memory = create_memory("bull_memory", self.config)
+        self.bear_memory = create_memory("bear_memory", self.config)
+        self.trader_memory = create_memory("trader_memory", self.config)
+        self.invest_judge_memory = create_memory("invest_judge_memory", self.config)
+        self.portfolio_manager_memory = create_memory("portfolio_manager_memory", self.config)
 
         # Create tool nodes
         self.tool_nodes = self._create_tool_nodes()
@@ -187,6 +190,18 @@ class TradingAgentsGraph:
                     get_balance_sheet,
                     get_cashflow,
                     get_income_statement,
+                ]
+            ),
+            "options": ToolNode(
+                [
+                    # Divergence / options analysis tools
+                    get_divergence_report,
+                ]
+            ),
+            "macro": ToolNode(
+                [
+                    # Macroeconomic data tools
+                    get_macro_data,
                 ]
             ),
         }
