@@ -45,6 +45,10 @@ class YFinanceConnector(BaseConnector):
             ConnectorCategory.FUNDAMENTALS,
         ]
 
+    @property
+    def probe_data_type(self) -> str:
+        return "ohlcv"
+
     # -- fetch dispatch --------------------------------------------------------
 
     def _fetch_impl(self, ticker: str, params: dict[str, Any]) -> dict[str, Any]:
@@ -71,14 +75,31 @@ class YFinanceConnector(BaseConnector):
     # -- data methods ----------------------------------------------------------
 
     def _fetch_ohlcv(self, ticker: str, params: dict[str, Any]) -> dict[str, Any]:
-        from ..y_finance import get_YFin_data_online
-
         start_date = params.get("start_date", "")
         end_date = params.get("end_date", "")
+
         if not start_date or not end_date:
-            raise ConnectorError(
-                "ohlcv requires 'start_date' and 'end_date' in params (YYYY-MM-DD)"
-            )
+            # Probe / quick-check mode: use yfinance download with a short period
+            import yfinance as yf
+
+            data = yf.download(ticker, period="5d", progress=False)
+            if data is None or data.empty:
+                raise ConnectorError(f"No OHLCV data returned for {ticker}")
+            if hasattr(data.columns, "nlevels") and data.columns.nlevels > 1:
+                data.columns = data.columns.droplevel(1)
+            last = data.iloc[-1]
+            return {
+                "ticker": ticker,
+                "data": {
+                    "close": float(last["Close"]),
+                    "volume": int(last["Volume"]),
+                    "rows": len(data),
+                },
+                "source": "yfinance",
+            }
+
+        from ..y_finance import get_YFin_data_online
+
         result = get_YFin_data_online(ticker, start_date, end_date)
         return {"ticker": ticker, "data": result, "source": "yfinance"}
 

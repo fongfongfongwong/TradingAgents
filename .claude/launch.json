@@ -3,15 +3,21 @@
   "configurations": [
     {
       "name": "backend",
-      "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "uvicorn", "tradingagents.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"],
+      "runtimeExecutable": ".venv/bin/python",
+      "runtimeArgs": ["-m", "uvicorn", "tradingagents.api.main:app", "--host", "127.0.0.1", "--port", "8000"],
       "port": 8000
     },
     {
       "name": "frontend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": ["run", "dev", "--prefix", "frontend"],
       "port": 3000
+    },
+    {
+      "name": "mockups",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8765", "--directory", "mockups"],
+      "port": 8765
     }
   ]
 }

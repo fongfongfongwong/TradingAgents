@@ -95,50 +95,23 @@ class TestAnalysis:
 
 
 class TestDivergence:
+    # NOTE: the legacy DivergenceAggregator was removed in Batch 7 cleanup.
+    # The /api/divergence/{ticker} route now computes from the briefing
+    # materializer directly, so these tests validate the response schema
+    # rather than a mocked compute result.
     def test_get_divergence_valid_ticker(self, client: TestClient) -> None:
-        mock_result = {
-            "ticker": "TSLA",
-            "timestamp": "2025-01-01T00:00:00+00:00",
-            "regime": "risk_on",
-            "dimensions": {},
-            "composite_score": 0.42,
-            "weights": {},
-            "confidence": 0.5,
-            "dimensions_available": 0,
-            "agent_summary": "",
-        }
-        with patch(
-            "tradingagents.divergence.aggregator.DivergenceAggregator"
-        ) as MockAgg:
-            MockAgg.return_value.compute.return_value = mock_result
-            resp = client.get("/api/divergence/TSLA")
-
+        resp = client.get("/api/divergence/TSLA")
         assert resp.status_code == 200
         data = resp.json()
         assert data["ticker"] == "TSLA"
-        assert data["regime"] == "risk_on"
+        assert isinstance(data["regime"], str)
         assert isinstance(data["composite_score"], float)
         assert "dimensions" in data
         assert "timestamp" in data
 
     def test_get_divergence_response_schema(self, client: TestClient) -> None:
-        mock_result = {
-            "ticker": "GOOG",
-            "timestamp": "2025-06-01T12:00:00+00:00",
-            "regime": "transitioning",
-            "dimensions": {"institutional": {"value": 0.1, "confidence": 0.5}},
-            "composite_score": -0.15,
-            "weights": {},
-            "confidence": 0.3,
-            "dimensions_available": 1,
-            "agent_summary": "",
-        }
-        with patch(
-            "tradingagents.divergence.aggregator.DivergenceAggregator"
-        ) as MockAgg:
-            MockAgg.return_value.compute.return_value = mock_result
-            resp = client.get("/api/divergence/GOOG")
-
+        resp = client.get("/api/divergence/GOOG")
+        assert resp.status_code == 200
         data = resp.json()
         assert set(data.keys()) == {
             "ticker", "regime", "composite_score", "dimensions", "timestamp",

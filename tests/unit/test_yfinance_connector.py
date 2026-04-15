@@ -58,9 +58,19 @@ class TestYFinanceConnectorDispatch:
         assert result["source"] == "yfinance"
         assert "Date,Open,Close" in result["data"]
 
-    def test_ohlcv_missing_dates_raises(self):
-        with pytest.raises(ConnectorError, match="start_date"):
-            self.connector._fetch_impl("AAPL", {"data_type": "ohlcv"})
+    @patch("yfinance.download")
+    def test_ohlcv_missing_dates_returns_probe(self, mock_download):
+        """When no start_date/end_date, connector does a 5d probe download."""
+        import pandas as pd
+
+        mock_data = pd.DataFrame(
+            {"Close": [155.0], "Volume": [1000000]},
+            index=pd.DatetimeIndex(["2024-01-05"]),
+        )
+        mock_download.return_value = mock_data
+        result = self.connector._fetch_impl("AAPL", {"data_type": "ohlcv"})
+        assert result["ticker"] == "AAPL"
+        assert result["source"] == "yfinance"
 
     @patch("tradingagents.dataflows.y_finance.get_stock_stats_indicators_window")
     def test_indicators_delegates(self, mock_fn):
@@ -151,7 +161,16 @@ class TestYFinanceConnectorDispatch:
         mock_fn.assert_called_once_with("AAPL")
         assert result["ticker"] == "AAPL"
 
-    def test_default_data_type_is_ohlcv(self):
-        """When no data_type is given, default should be 'ohlcv' which requires dates."""
-        with pytest.raises(ConnectorError, match="start_date"):
-            self.connector._fetch_impl("AAPL", {})
+    @patch("yfinance.download")
+    def test_default_data_type_is_ohlcv(self, mock_download):
+        """When no data_type is given, default is 'ohlcv' which does a probe download."""
+        import pandas as pd
+
+        mock_data = pd.DataFrame(
+            {"Close": [155.0], "Volume": [1000000]},
+            index=pd.DatetimeIndex(["2024-01-05"]),
+        )
+        mock_download.return_value = mock_data
+        result = self.connector._fetch_impl("AAPL", {})
+        assert result["ticker"] == "AAPL"
+        assert result["source"] == "yfinance"

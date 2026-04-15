@@ -217,3 +217,8 @@ __marimo__/
 
 # Cache
 **/data_cache/
+
+# HAR-RV model artifacts and evaluation outputs
+*.joblib
+models/
+outputs/rv_prediction/

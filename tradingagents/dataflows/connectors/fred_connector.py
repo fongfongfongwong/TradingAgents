@@ -74,6 +74,10 @@ class FREDConnector(BaseConnector):
         self._session.close()
         super().disconnect()
 
+    @property
+    def probe_data_type(self) -> str:
+        return "releases"
+
     # -- dispatch --------------------------------------------------------------
 
     def _fetch_impl(self, ticker: str, params: dict[str, Any]) -> dict[str, Any]:

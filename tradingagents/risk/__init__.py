@@ -17,6 +17,7 @@ from tradingagents.risk.stop_rules import (
 )
 from tradingagents.risk.constraints import PortfolioConstraints
 from tradingagents.risk.validation_gate import ValidationGate
+from tradingagents.risk.deterministic import evaluate_risk
 
 __all__ = [
     "VolatilityTargetSizer",
@@ -28,4 +29,5 @@ __all__ = [
     "CompositeStop",
     "PortfolioConstraints",
     "ValidationGate",
+    "evaluate_risk",
 ]

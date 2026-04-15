@@ -61,6 +61,10 @@ class FinnhubConnector(BaseConnector):
         self._session.close()
         super().disconnect()
 
+    @property
+    def probe_data_type(self) -> str:
+        return "quote"
+
     def _fetch_impl(self, ticker: str, params: dict[str, Any]) -> dict[str, Any]:
         data_type = params.get("data_type", "quote")
         dispatch = {

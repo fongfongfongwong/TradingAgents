@@ -1,5 +1,7 @@
 """LLM Router - Routes agents to appropriate model tiers."""
 
+from __future__ import annotations
+
 from enum import Enum
 
 from .cost_tracker import PRICING

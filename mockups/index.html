@@ -1,0 +1,890 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>FLAB MASA — 5-min Vol Trading Console (v3)</title>
+<style>
+  :root{
+    --bg:#0a0d13; --panel:#0d1218; --panel2:#10161f; --panel3:#161b22;
+    --line:#1c2230; --line2:#2a3246;
+    --fg:#e6edf3; --fg2:#9ba7bb; --fg3:#6e7a91; --fg4:#47536a;
+    --buy:#10b981; --buy-dim:#0a6b4b; --buy-bg:#052018;
+    --sell:#e23b4a; --sell-dim:#7a1820; --sell-bg:#1c0608;
+    --hold:#8b98ac;
+    --amber:#ec7e00; --amber-bg:#1a1004;
+    --focus:#4fc3f7; --focus-bg:#041824;
+    --accent:#a78bfa; --accent-bg:#12081f;
+    --warn-red:#c02c2c;
+    --mono:"JetBrains Mono","SF Mono",Menlo,monospace;
+    --sans:"Inter","SF Pro Text",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:12px;-webkit-font-smoothing:antialiased;line-height:1.4;overflow:hidden}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+  .buy{color:var(--buy)}
+  .sell{color:var(--sell)}
+  .hold{color:var(--hold)}
+  .dim{color:var(--fg3)}
+  .dim2{color:var(--fg4)}
+  .amber{color:var(--amber)}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+
+  /* ========= top strip ========= */
+  .top-stripe{height:3px;background:linear-gradient(90deg,var(--buy) 0 8%,transparent 8%)}
+  .top-stripe.paper{background:linear-gradient(90deg,var(--amber) 0 8%,transparent 8%)}
+
+  header.topbar{background:var(--panel);border-bottom:1px solid var(--line);padding:0}
+
+  .topbar-row1{display:grid;grid-template-columns:auto auto 1fr auto auto auto auto auto;gap:14px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line)}
+  .logo-block{display:flex;align-items:center;gap:10px}
+  .logo{width:26px;height:26px;background:linear-gradient(135deg,#a78bfa,#4fc3f7);border-radius:5px;display:grid;place-items:center;color:#06080c;font-weight:800;font-size:12px}
+  .logo-text{display:flex;flex-direction:column;line-height:1.1}
+  .logo-text .name{font-size:13px;font-weight:600;letter-spacing:-0.2px}
+  .logo-text .sub{font-size:9px;color:var(--fg3);font-family:var(--mono)}
+  .live-pill{background:#041f16;color:#34d399;padding:3px 9px;border:1px solid #0a5d3f;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:.6px;font-family:var(--mono)}
+  .clock{font-family:var(--mono);font-size:11px;color:var(--fg2);display:flex;gap:8px;align-items:center}
+  .clock .state{color:var(--buy);font-weight:600}
+  .clock .sep{color:var(--fg4)}
+
+  .budget-block{display:flex;align-items:center;gap:8px;padding:4px 10px;background:var(--panel2);border:1px solid var(--line2);border-radius:5px;font-family:var(--mono);font-size:10px}
+  .budget-block .lbl{color:var(--fg3);font-size:9px;text-transform:uppercase;letter-spacing:.5px}
+  .budget-block .val{color:var(--fg);font-size:11px}
+  .budget-block .amber{color:var(--amber)}
+  .budget-block .bar{width:54px;height:4px;background:var(--panel3);border-radius:1px;overflow:hidden;position:relative}
+  .budget-block .bar i{display:block;height:100%;background:var(--amber);width:25%}
+  .budget-block .proj{font-size:9px;color:var(--fg3)}
+
+  .err-dock{background:var(--sell);color:#fff;padding:4px 10px;border-radius:3px;font-size:10px;font-weight:700;font-family:var(--mono);cursor:pointer}
+  .err-dock:hover{background:#e85862}
+
+  .btn{background:var(--panel2);border:1px solid var(--line2);color:var(--fg2);padding:6px 12px;font-size:11px;border-radius:4px;font-family:var(--mono);display:inline-flex;align-items:center;gap:5px}
+  .btn:hover{background:var(--panel3);color:var(--fg)}
+  .btn.go{background:linear-gradient(180deg,#0f8c67,#0a6b4b);border-color:#0a5d3f;color:#fff;font-weight:600}
+  .btn.go:hover{background:linear-gradient(180deg,#10b981,#0a8458)}
+  .btn.deep{background:linear-gradient(180deg,#6b4bf5,#5a3ce0);border-color:#4c1d95;color:#fff;font-weight:600}
+  .btn.deep:hover{background:linear-gradient(180deg,#7b5cff,#6b4bf5)}
+  .btn.danger{border-color:#7f1d1d;color:#fca5a5}
+  .btn .kbd{font-size:8px;opacity:.6;padding:1px 4px;border:1px solid currentColor;border-radius:2px;margin-left:2px}
+
+  /* ========= countdown row ========= */
+  .topbar-row2{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+  .countdown{background:var(--panel);padding:7px 14px;display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px}
+  .countdown .ic{font-size:14px;opacity:.7}
+  .countdown .lbl{color:var(--fg3);font-size:9px;text-transform:uppercase;letter-spacing:.7px;font-weight:600}
+  .countdown .val{color:var(--fg);font-size:13px;font-weight:600}
+  .countdown .sub{color:var(--fg3);font-size:9px}
+  .countdown.accent .val{color:var(--focus)}
+  .countdown.ok .val{color:var(--buy)}
+  .countdown.warn .val{color:var(--amber)}
+  .countdown .pbar{flex:1;max-width:140px;height:4px;background:var(--panel2);border-radius:1px;overflow:hidden;position:relative}
+  .countdown .pbar i{position:absolute;top:0;left:0;height:100%}
+  .countdown .pbar i.u{background:var(--focus);width:30%}
+  .countdown .pbar i.a{background:var(--buy);width:38%}
+  .countdown .pbar i.t{background:var(--accent);width:48%}
+
+  /* ========= source health strip ========= */
+  .topbar-row3{background:var(--panel2);padding:6px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line)}
+  .hs-lbl{font-size:9px;color:var(--fg3);text-transform:uppercase;letter-spacing:.6px;font-weight:600}
+  .src-chips{display:flex;gap:6px;flex:1}
+  .src-chip{background:var(--panel3);border:1px solid var(--line2);border-radius:3px;padding:3px 8px;font-family:var(--mono);font-size:9px;display:flex;gap:6px;align-items:center;color:var(--fg2)}
+  .src-chip.ok{border-color:#0a5d3f}
+  .src-chip.warn{border-color:#78350f;background:#1a1004;color:var(--amber)}
+  .src-chip.err{border-color:#7f1d1d;background:#1c0608;color:#fca5a5}
+  .src-chip .dot{width:5px;height:5px;border-radius:50%;background:var(--buy);box-shadow:0 0 4px var(--buy)}
+  .src-chip.warn .dot{background:var(--amber);box-shadow:0 0 4px var(--amber);animation:pulse 1.2s infinite}
+  .src-chip.err .dot{background:var(--sell);box-shadow:0 0 4px var(--sell);animation:pulse 1s infinite}
+  .src-chip .name{color:var(--fg);font-weight:600}
+  .src-chip .age{color:var(--fg3);font-size:8px}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* ========= body ========= */
+  .body{display:grid;grid-template-columns:60% 40%;height:calc(100vh - 156px)}
+
+  /* ========= left column ========= */
+  .left{display:flex;flex-direction:column;border-right:1px solid var(--line);overflow:hidden}
+
+  /* universe table */
+  .univ-head{background:var(--panel);border-bottom:1px solid var(--line);padding:8px 14px;display:flex;align-items:center;gap:10px;font-size:11px}
+  .univ-head h2{margin:0;font-size:11px;color:var(--fg);font-weight:600;letter-spacing:.3px;display:flex;gap:8px;align-items:center}
+  .univ-head h2 .count{color:var(--fg3);font-family:var(--mono);font-weight:400;font-size:10px}
+  .univ-head .seg{display:flex;background:var(--panel2);border:1px solid var(--line2);border-radius:4px;padding:2px;gap:1px}
+  .univ-head .seg button{padding:3px 10px;font-size:10px;color:var(--fg3);font-family:var(--mono);border-radius:3px}
+  .univ-head .seg button.on{background:var(--panel3);color:var(--fg)}
+  .univ-head .seg button:hover{color:var(--fg)}
+  .univ-head .rank-by{font-size:10px;color:var(--fg3);font-family:var(--mono)}
+  .univ-head .rank-by select{background:var(--panel2);border:1px solid var(--line2);color:var(--fg);font-family:var(--mono);font-size:10px;padding:3px 6px;border-radius:3px}
+  .preset-row{background:var(--panel2);border-bottom:1px solid var(--line);padding:6px 14px;display:flex;gap:6px;align-items:center;font-size:10px}
+  .preset{padding:3px 9px;border:1px solid var(--line2);border-radius:99px;font-family:var(--mono);color:var(--fg2);cursor:pointer}
+  .preset:hover{color:var(--fg);border-color:var(--line2)}
+  .preset.on{background:var(--accent-bg);border-color:#4c1d95;color:#c4b5fd}
+  .preset.on.buy{background:var(--buy-bg);border-color:#0a5d3f;color:#6ee7b7}
+  .preset.on.sell{background:var(--sell-bg);border-color:#7f1d1d;color:#fca5a5}
+
+  .tbl-wrap{flex:1;overflow:auto;background:var(--panel)}
+  table.vol{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px}
+  table.vol thead th{position:sticky;top:0;background:var(--panel);color:var(--fg3);font-weight:500;padding:6px 8px;border-bottom:1px solid var(--line);font-size:9px;text-transform:uppercase;letter-spacing:.4px;text-align:left;z-index:1;cursor:pointer;user-select:none}
+  table.vol thead th.r{text-align:right}
+  table.vol thead th.c{text-align:center}
+  table.vol thead th:hover{color:var(--fg)}
+  table.vol thead th.sort{color:var(--fg)}
+  table.vol thead th.sort::after{content:" ↓";color:var(--focus)}
+  table.vol tbody .sep-row td{background:var(--panel2);color:var(--fg3);padding:4px 10px;font-size:9px;text-transform:uppercase;letter-spacing:.6px;font-weight:600;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-family:var(--sans)}
+  table.vol tbody tr{border-bottom:1px solid #121822;height:22px}
+  table.vol tbody tr:hover{background:#0e1218}
+  table.vol tbody tr.sel{background:#142030;box-shadow:inset 3px 0 0 var(--focus)}
+  table.vol tbody tr.flipped{animation:flash 1.5s ease-out}
+  @keyframes flash{0%{background:#0e3a5a}100%{background:transparent}}
+  table.vol tbody td{padding:2px 8px;color:var(--fg);vertical-align:middle}
+  table.vol tbody td.sym{font-weight:700}
+  table.vol tbody td.c{text-align:center}
+  table.vol tbody td.r{text-align:right}
+  table.vol tbody td .sm{font-size:9px}
+
+  .sig-pill{display:inline-block;padding:1px 6px;border:1px solid;border-radius:3px;font-size:9px;font-weight:700;letter-spacing:.3px}
+  .sig-pill.buy{background:var(--buy-bg);color:#6ee7b7;border-color:#0a5d3f}
+  .sig-pill.sell{background:var(--sell-bg);color:#fca5a5;border-color:#7f1d1d}
+  .sig-pill.hold{background:#1a1f28;color:var(--hold);border-color:var(--line2)}
+
+  .conv-cell{display:flex;align-items:center;gap:4px;justify-content:flex-end}
+  .conv-cell .conv-bar{width:22px;height:4px;background:var(--panel3);border-radius:1px;overflow:hidden}
+  .conv-cell .conv-bar i{display:block;height:100%}
+  .conv-cell.buy .conv-bar i{background:var(--buy)}
+  .conv-cell.sell .conv-bar i{background:var(--sell)}
+  .conv-cell.hold .conv-bar i{background:var(--hold)}
+
+  .flip-cell{text-align:center;font-size:11px}
+  .flip-cell.up{color:var(--buy)}
+  .flip-cell.dn{color:var(--sell)}
+  .flip-cell.eq{color:var(--fg4)}
+  .flip-delta{font-size:8px;color:var(--fg3);margin-left:2px}
+
+  .fresh-chip{display:inline-block;padding:1px 5px;border-radius:2px;font-size:8px;font-family:var(--mono)}
+  .fresh-chip.hot{background:#041f16;color:#34d399;border:1px solid #0a5d3f}
+  .fresh-chip.warm{background:var(--panel3);color:var(--fg3);border:1px solid var(--line2)}
+  .fresh-chip.stale{background:#1a1004;color:var(--amber);border:1px solid #78350f}
+  .fresh-chip.cold{background:#1c0608;color:#fca5a5;border:1px solid #7f1d1d}
+
+  .pred-delta{color:var(--amber);font-size:9px}
+  .pred-delta.calm{color:var(--fg3)}
+  .rvol-indicator{color:var(--fg3);font-size:9px}
+  .rvol-indicator.hot{color:var(--amber)}
+
+  .cached-badge{color:var(--fg4);font-size:8px;margin-left:3px}
+  .mock-badge{color:var(--amber);font-size:8px;margin-left:3px;font-weight:700}
+  .stream-badge{color:var(--focus);font-size:8px;margin-left:3px;animation:pulse 1s infinite}
+
+  /* ========= tab bar (below table) ========= */
+  .tabbar{background:var(--panel);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:0 14px;display:flex;align-items:center;gap:2px;height:36px;flex-shrink:0}
+  .tab{padding:8px 14px;font-size:11px;color:var(--fg3);cursor:pointer;border-bottom:2px solid transparent;position:relative;font-family:var(--sans)}
+  .tab.on{color:var(--fg);border-bottom-color:var(--focus)}
+  .tab:hover{color:var(--fg)}
+  .tab .k{font-size:9px;color:var(--fg4);margin-left:4px;font-family:var(--mono)}
+
+  .tab-content{flex:1;overflow:auto;background:var(--bg)}
+
+  /* ========= INSPECTOR CARD (the NVDA verdict card from user's image 1) ========= */
+  .inspector{padding:16px 20px;max-width:700px}
+  .insp-head{display:flex;align-items:baseline;gap:12px;margin-bottom:10px}
+  .insp-tk{font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:-0.5px}
+  .insp-co{color:var(--fg3);font-size:11px}
+  .insp-sep{color:var(--fg4);font-size:11px}
+  .insp-meta{color:var(--fg3);font-size:10px;font-family:var(--mono)}
+  .insp-px{margin-left:auto;font-family:var(--mono);font-size:18px}
+  .insp-chg{margin-left:8px;font-size:13px}
+  .insp-chg.buy{color:var(--buy)}
+  .insp-chg.sell{color:var(--sell)}
+
+  .verdict-box{padding:14px 18px;border-radius:6px;margin-bottom:12px;position:relative}
+  .verdict-box.buy{background:linear-gradient(180deg,#062c1f 0%,#041f16 100%);border:1px solid #0a5d3f}
+  .verdict-box.sell{background:linear-gradient(180deg,#2c0608 0%,#1c0608 100%);border:1px solid #7f1d1d}
+  .verdict-box.hold{background:linear-gradient(180deg,#1a1f28 0%,#10161f 100%);border:1px solid var(--line2)}
+  .verdict-box .vlbl{font-size:10px;color:var(--fg3);text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-bottom:2px}
+  .verdict-box .vsig{font-size:32px;font-weight:800;letter-spacing:-1px;line-height:1;font-family:var(--mono)}
+  .verdict-box.buy .vsig{color:#34d399}
+  .verdict-box.sell .vsig{color:#f87171}
+  .verdict-box.hold .vsig{color:var(--hold)}
+  .verdict-box .vstats{display:flex;gap:14px;margin-top:6px;font-family:var(--mono);font-size:11px;color:var(--fg2)}
+  .verdict-box .vstats b{color:var(--fg);font-weight:700}
+  .verdict-box .vbar{height:5px;background:rgba(0,0,0,.3);border-radius:2px;margin-top:10px;overflow:hidden}
+  .verdict-box .vbar i{display:block;height:100%}
+  .verdict-box.buy .vbar i{background:var(--buy);width:78%}
+  .verdict-box.sell .vbar i{background:var(--sell);width:72%}
+  .verdict-box .actions{position:absolute;top:14px;right:14px;display:flex;gap:4px}
+
+  .because{padding:10px 14px;border-left:3px solid var(--focus);background:var(--focus-bg);color:var(--fg2);font-size:11px;line-height:1.6;margin-bottom:14px;border-radius:0 4px 4px 0}
+  .because b{color:var(--fg)}
+
+  .sect{margin-bottom:14px}
+  .sect-head{font-size:9px;text-transform:uppercase;color:var(--fg3);letter-spacing:.8px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+  .sect-head .src{color:var(--fg4);font-family:var(--mono);font-weight:400}
+
+  /* debate rollup */
+  .debate-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:4px}
+  .ag-card{padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--panel)}
+  .ag-card.bull{border-left:2px solid var(--buy)}
+  .ag-card.bear{border-left:2px solid var(--sell)}
+  .ag-card.base{border-left:2px solid var(--hold)}
+  .ag-card.synth{grid-column:1 / span 3;border-left:2px solid var(--accent);background:linear-gradient(90deg,var(--accent-bg) 0%,var(--panel) 60%)}
+  .ag-card .ag-lbl{font-size:8px;text-transform:uppercase;color:var(--fg3);letter-spacing:.5px;font-weight:600;margin-bottom:3px}
+  .ag-card .ag-stance{font-family:var(--mono);font-size:13px;font-weight:700}
+  .ag-card.bull .ag-stance{color:var(--buy)}
+  .ag-card.bear .ag-stance{color:var(--sell)}
+  .ag-card.base .ag-stance{color:var(--hold)}
+  .ag-card.synth .ag-stance{color:#c4b5fd}
+  .ag-card .ag-conf{font-family:var(--mono);font-size:11px;color:var(--fg2);margin-top:2px}
+  .ag-card .ag-bar{height:3px;background:var(--panel3);margin-top:4px;border-radius:1px;overflow:hidden}
+  .ag-card .ag-bar i{display:block;height:100%}
+  .ag-card.bull .ag-bar i{background:var(--buy)}
+  .ag-card.bear .ag-bar i{background:var(--sell)}
+  .ag-card.base .ag-bar i{background:var(--hold)}
+  .ag-card.synth .ag-bar i{background:var(--accent)}
+  .synth-detail{font-size:10px;color:var(--fg3);margin-top:4px;font-family:var(--mono)}
+  .synth-detail .hit{color:var(--buy)}
+  .synth-detail .miss{color:var(--sell)}
+
+  /* volatility panel */
+  .vol-panel{display:grid;grid-template-columns:1fr 260px;gap:14px}
+  .vol-kv{font-family:var(--mono);font-size:11px}
+  .vol-kv .row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dashed var(--line)}
+  .vol-kv .row:last-child{border-bottom:none}
+  .vol-kv .k{color:var(--fg3)}
+  .vol-kv .v{color:var(--fg);text-align:right}
+  .vol-kv .v.amber{color:var(--amber)}
+  .vol-kv .v.buy{color:var(--buy)}
+  .vol-chart{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:6px;min-height:80px}
+
+  /* sentiment strip */
+  .sent-grid{display:grid;grid-template-columns:repeat(5,1fr) 100px;gap:1px;background:var(--line);border-radius:4px;overflow:hidden;border:1px solid var(--line)}
+  .sent-cell{background:var(--panel);padding:8px;text-align:center}
+  .sent-cell .lbl{font-size:8px;text-transform:uppercase;color:var(--fg3);letter-spacing:.4px;font-weight:600}
+  .sent-cell .v{font-family:var(--mono);font-size:13px;font-weight:600;margin-top:2px}
+  .sent-cell .v.buy{color:var(--buy)}
+  .sent-cell .v.sell{color:var(--sell)}
+  .sent-cell .v.hold{color:var(--hold)}
+  .sent-cell.composite{background:var(--accent-bg)}
+  .sent-cell.composite .lbl{color:#c4b5fd}
+  .sent-cell.composite .v{color:#c4b5fd;font-size:14px}
+
+  /* options strip */
+  .opt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-family:var(--mono);font-size:11px}
+  .opt-cell{padding:6px 8px;background:var(--panel);border:1px solid var(--line);border-radius:4px}
+  .opt-cell .k{font-size:8px;text-transform:uppercase;color:var(--fg3);letter-spacing:.4px;font-weight:600}
+  .opt-cell .v{color:var(--fg);margin-top:2px;font-size:12px}
+  .opt-cell .v.rich{color:var(--amber)}
+  .opt-cell .v.cheap{color:var(--buy)}
+
+  /* ========= right column ========= */
+  .right{display:flex;flex-direction:column;overflow:hidden;background:var(--panel)}
+
+  .right-sect{border-bottom:1px solid var(--line);padding:12px 14px}
+  .right-sect h3{margin:0 0 10px 0;font-size:10px;text-transform:uppercase;color:var(--fg3);letter-spacing:.7px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+  .right-sect h3 .tag{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;letter-spacing:.3px;font-weight:700}
+  .tag.bull{background:var(--buy-bg);color:#6ee7b7;border:1px solid #0a5d3f}
+  .tag.bull-lean{background:#0a1d16;color:#34d399;border:1px solid #064030}
+  .tag.bear{background:var(--sell-bg);color:#fca5a5;border:1px solid #7f1d1d}
+  .tag.bear-lean{background:#1a0508;color:#f87171;border:1px solid #5a151a}
+  .tag.neutral{background:var(--panel3);color:var(--fg3);border:1px solid var(--line2)}
+
+  /* DIVERGENCE panel — user's image 2 */
+  .div-panel{padding:0}
+  .div-comp{text-align:center;padding:10px 0 14px 0}
+  .div-comp .val{font-family:var(--mono);font-size:28px;font-weight:700;letter-spacing:-0.5px}
+  .div-comp .val.bear{color:var(--amber)}
+  .div-comp .val.bull{color:var(--buy)}
+  .div-bars{display:flex;flex-direction:column;gap:8px}
+  .div-row{display:grid;grid-template-columns:82px 1fr 50px;gap:10px;align-items:center;font-family:var(--mono);font-size:10px}
+  .div-row .dlbl{color:var(--fg2)}
+  .div-row .dtrack{height:5px;background:var(--panel3);border-radius:2px;position:relative;overflow:visible}
+  .div-row .dtrack::before{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--line2)}
+  .div-row .dseg{position:absolute;top:0;height:100%;border-radius:1px}
+  .div-row .dseg.bull{background:var(--buy)}
+  .div-row .dseg.bull-lean{background:var(--buy);opacity:.55}
+  .div-row .dseg.bear{background:var(--sell)}
+  .div-row .dseg.bear-lean{background:var(--amber);opacity:.85}
+  .div-row .dseg.neutral{background:var(--fg3)}
+  .div-row .dval{color:var(--fg);text-align:right;font-size:10px}
+  .div-row .dval.bull{color:#34d399}
+  .div-row .dval.bear{color:#f87171}
+  .div-row .dval.neutral{color:var(--fg3)}
+  .div-row .dval.low-conf{opacity:.5}
+  .div-weights{font-size:8px;color:var(--fg4);font-family:var(--mono);margin-top:6px;display:flex;justify-content:space-between}
+
+  /* news feed */
+  .news-list{display:flex;flex-direction:column}
+  .news-row{display:grid;grid-template-columns:32px 1fr auto;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer;align-items:start}
+  .news-row:hover{background:#0a0d13}
+  .news-row:last-child{border-bottom:none}
+  .news-row.brk{border-left:2px solid var(--amber);padding-left:8px;margin:0 -14px;padding-right:8px;padding-left:6px}
+  .news-row .score{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--amber);text-align:right}
+  .news-row .score.mid{color:var(--focus)}
+  .news-row .score.low{color:var(--fg3)}
+  .news-row .hl{font-size:11px;color:var(--fg);line-height:1.4}
+  .news-row .hl-sym{color:var(--focus);font-family:var(--mono);font-weight:600;margin-right:4px}
+  .news-row .meta{font-size:9px;color:var(--fg3);font-family:var(--mono);margin-top:2px}
+  .news-row .meta .tag-inline{display:inline-block;padding:0 4px;background:var(--panel3);border:1px solid var(--line2);border-radius:2px;color:var(--fg2);margin-left:3px;font-size:8px}
+  .news-row .meta .tag-inline.up{background:var(--buy-bg);color:#6ee7b7;border-color:#0a5d3f}
+  .news-row .meta .tag-inline.down{background:var(--sell-bg);color:#fca5a5;border-color:#7f1d1d}
+  .news-row .meta .tag-inline.fda{background:var(--accent-bg);color:#c4b5fd;border-color:#4c1d95}
+  .news-row .age{font-family:var(--mono);font-size:9px;color:var(--fg3);text-align:right;white-space:nowrap}
+
+  /* pipeline status */
+  .pipe-status{display:flex;flex-direction:column;gap:5px}
+  .pipe-row{display:grid;grid-template-columns:74px 1fr 48px;gap:8px;font-family:var(--mono);font-size:10px;align-items:center}
+  .pipe-row .plbl{color:var(--fg2)}
+  .pipe-row .pstate{padding:2px 7px;border-radius:2px;font-size:9px;text-align:center;border:1px solid}
+  .pipe-row .pstate.done{background:#031d14;color:#34d399;border-color:#0a5d3f}
+  .pipe-row .pstate.run{background:#021428;color:var(--focus);border-color:#075985;position:relative}
+  .pipe-row .pstate.queue{background:var(--panel3);color:var(--fg4);border-color:var(--line2)}
+  .pipe-row .pstate.err{background:#1f0808;color:#fca5a5;border-color:#7f1d1d;font-weight:700}
+  .pipe-row .pstate.stall{background:#1a1004;color:var(--amber);border-color:#78350f}
+  .pipe-row .ptime{color:var(--fg3);text-align:right;font-size:9px}
+
+  /* footer */
+  .footer{background:var(--panel);border-top:1px solid var(--line);padding:5px 14px;display:flex;gap:16px;align-items:center;font-family:var(--mono);font-size:9px;color:var(--fg3);height:26px}
+  .footer .sep{color:var(--fg4)}
+  .footer b{color:var(--focus);font-weight:700}
+  .footer .ko{color:var(--fg2)}
+</style>
+</head>
+<body>
+
+<div class="top-stripe"></div>
+<header class="topbar">
+
+  <!-- row 1: brand, clock, budget, actions -->
+  <div class="topbar-row1">
+    <div class="logo-block">
+      <div class="logo">FM</div>
+      <div class="logo-text">
+        <div class="name">FLAB MASA</div>
+        <div class="sub">vol-arb · v3.2</div>
+      </div>
+    </div>
+
+    <div class="live-pill">● LIVE</div>
+
+    <div class="clock">
+      <span class="state">RTH</span>
+      <span class="sep">│</span>
+      <span>11:34:02 ET</span>
+      <span class="sep">│</span>
+      <span class="dim">close in 4h 26m</span>
+    </div>
+
+    <div class="budget-block" title="Daily Anthropic spend / cap">
+      <span class="lbl">$</span>
+      <span class="val amber">12.40</span>
+      <span class="dim">/ 300</span>
+      <div class="bar"><i></i></div>
+      <span class="proj">proj 4h 12m</span>
+    </div>
+
+    <div class="err-dock">ERR 7</div>
+
+    <button class="btn"><span>⟳</span> Fast <span class="kbd">F</span></button>
+    <button class="btn deep"><span>▶</span> Deep Debate <span class="kbd">⌘R</span></button>
+    <button class="btn">⋯</button>
+  </div>
+
+  <!-- row 2: three live countdowns -->
+  <div class="topbar-row2">
+    <div class="countdown accent">
+      <span class="ic">⟳</span>
+      <div>
+        <div class="lbl">Universe Re-rank</div>
+        <div><span class="val">0:42</span> <span class="sub">· next 1-min tick</span></div>
+      </div>
+      <div class="pbar"><i class="u"></i></div>
+    </div>
+    <div class="countdown ok">
+      <span class="ic">◎</span>
+      <div>
+        <div class="lbl">Agent Cycle · 38 / 40 done</div>
+        <div><span class="val">0:47</span><span class="sub"> / 2:00 budget · $4.80</span></div>
+      </div>
+      <div class="pbar"><i class="a"></i></div>
+    </div>
+    <div class="countdown">
+      <span class="ic">◈</span>
+      <div>
+        <div class="lbl">Next Trade Window</div>
+        <div><span class="val">2:34</span> <span class="sub">· 5-min bar</span></div>
+      </div>
+      <div class="pbar"><i class="t"></i></div>
+    </div>
+    <div class="countdown" style="padding:7px 16px">
+      <span class="ic">⌘K</span>
+      <div>
+        <div class="lbl">Palette</div>
+        <div class="sub">/ticker · 1-9 nav</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- row 3: 9-source health strip (from Code Reader #9) -->
+  <div class="topbar-row3">
+    <span class="hs-lbl">Sources</span>
+    <div class="src-chips">
+      <div class="src-chip ok"><span class="dot"></span><span class="name">polygon</span><span class="age">2s</span></div>
+      <div class="src-chip ok"><span class="dot"></span><span class="name">yfin</span><span class="age">4s</span></div>
+      <div class="src-chip warn"><span class="dot"></span><span class="name">finnhub</span><span class="age">58/60 rpm</span></div>
+      <div class="src-chip ok"><span class="dot"></span><span class="name">quiver</span><span class="age">18m</span></div>
+      <div class="src-chip ok"><span class="dot"></span><span class="name">cboe</span><span class="age">6m</span></div>
+      <div class="src-chip ok"><span class="dot"></span><span class="name">apewis</span><span class="age">11m</span></div>
+      <div class="src-chip ok"><span class="dot"></span><span class="name">fred</span><span class="age">47m</span></div>
+      <div class="src-chip ok"><span class="dot"></span><span class="name">f&g</span><span class="age">11m</span></div>
+      <div class="src-chip warn"><span class="dot"></span><span class="name">anthropic</span><span class="age">p95 2.1s</span></div>
+    </div>
+    <span class="dim" style="font-family:var(--mono);font-size:9px">SSE ●42/s</span>
+  </div>
+
+</header>
+
+<div class="body">
+
+  <!-- ================ LEFT COLUMN ================ -->
+  <div class="left">
+
+    <!-- universe table header -->
+    <div class="univ-head">
+      <h2>Top-Vol Universe <span class="count">40 tickers · 20 EQ + 20 ETF</span></h2>
+      <div class="seg">
+        <button class="on">All 40</button>
+        <button>Equity</button>
+        <button>ETF</button>
+      </div>
+      <div class="rank-by">rank by
+        <select><option>HAR-RV 1d pred ↓</option><option>HAR-RV 5d pred ↓</option><option>Today range %</option><option>IV rank</option><option>Vol-of-vol</option></select>
+      </div>
+    </div>
+
+    <div class="preset-row">
+      <span class="dim" style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.5px">presets</span>
+      <span class="preset on buy">LONGS 14</span>
+      <span class="preset on sell">SHORTS 11</span>
+      <span class="preset">HOLD 15</span>
+      <span class="preset on">HIGH CONV ≥75 (8)</span>
+      <span class="preset">FLIPPED (3)</span>
+      <span class="preset">AGENT DISAGREE &gt;0.5</span>
+      <span class="preset">DATA FRESH &lt;30s</span>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="vol">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>TICK</th>
+            <th class="r">PX</th>
+            <th class="r">Δ%</th>
+            <th class="r">RV20</th>
+            <th class="r sort">PRED 1d</th>
+            <th class="r">Δpred</th>
+            <th class="r">IVR</th>
+            <th class="c">SIG</th>
+            <th class="r">CONV</th>
+            <th class="r">EV%</th>
+            <th class="c">DGR</th>
+            <th class="c">FLIP</th>
+            <th class="r">FRESH</th>
+            <th class="c">✎</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr><td colspan="15" class="sep-row">▾ EQUITY · top 20 by HAR-RV 1d predicted</td></tr>
+
+          <tr class="sel"><td class="dim">1</td><td class="sym">NVDA</td><td class="num">912.40</td><td class="num buy">+2.14</td><td class="num">28%</td><td class="num amber">31%</td><td class="num"><span class="pred-delta">+3.0</span></td><td class="num">74</td><td class="c"><span class="sig-pill buy">BUY</span></td><td class="num"><div class="conv-cell buy"><div class="conv-bar"><i style="width:78%"></i></div>78</div></td><td class="num buy">+1.4</td><td class="num">0.31</td><td class="flip-cell up">▲<span class="flip-delta">+6</span></td><td class="num"><span class="fresh-chip hot">12s</span></td><td class="c"><span class="stream-badge">●</span></td></tr>
+
+          <tr><td class="dim">2</td><td class="sym">TSLA</td><td class="num">248.12</td><td class="num sell">-1.13</td><td class="num">41%</td><td class="num amber">48%</td><td class="num"><span class="pred-delta">+7.0</span></td><td class="num">62</td><td class="c"><span class="sig-pill sell">SHORT</span></td><td class="num"><div class="conv-cell sell"><div class="conv-bar"><i style="width:72%"></i></div>72</div></td><td class="num sell">-1.1</td><td class="num">0.44</td><td class="flip-cell dn">▼<span class="flip-delta">-4</span></td><td class="num"><span class="fresh-chip hot">18s</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">3</td><td class="sym">AMD</td><td class="num">168.41</td><td class="num buy">+1.82</td><td class="num">34%</td><td class="num amber">38%</td><td class="num"><span class="pred-delta">+4.0</span></td><td class="num">55</td><td class="c"><span class="sig-pill buy">BUY</span></td><td class="num"><div class="conv-cell buy"><div class="conv-bar"><i style="width:66%"></i></div>66</div></td><td class="num buy">+0.9</td><td class="num">0.28</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip hot">23s</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">4</td><td class="sym">COIN</td><td class="num">189.55</td><td class="num buy">+3.41</td><td class="num">52%</td><td class="num amber">56%</td><td class="num"><span class="pred-delta">+4.0</span></td><td class="num">68</td><td class="c"><span class="sig-pill buy">BUY</span></td><td class="num"><div class="conv-cell buy"><div class="conv-bar"><i style="width:81%"></i></div>81</div></td><td class="num buy">+2.1</td><td class="num">0.19</td><td class="flip-cell up">▲<span class="flip-delta">new</span></td><td class="num"><span class="fresh-chip hot">9s</span></td><td class="c"><span class="stream-badge">●</span></td></tr>
+
+          <tr><td class="dim">5</td><td class="sym">MARA</td><td class="num">22.18</td><td class="num buy">+4.82</td><td class="num">68%</td><td class="num amber">72%</td><td class="num"><span class="pred-delta">+4.0</span></td><td class="num">78</td><td class="c"><span class="sig-pill buy">BUY</span></td><td class="num"><div class="conv-cell buy"><div class="conv-bar"><i style="width:74%"></i></div>74</div></td><td class="num buy">+2.8</td><td class="num">0.22</td><td class="flip-cell up">▲<span class="flip-delta">+8</span></td><td class="num"><span class="fresh-chip warm">34s</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">6</td><td class="sym">RIVN</td><td class="num">13.42</td><td class="num sell">-2.11</td><td class="num">58%</td><td class="num amber">64%</td><td class="num"><span class="pred-delta">+6.0</span></td><td class="num">54</td><td class="c"><span class="sig-pill sell">SHORT</span></td><td class="num"><div class="conv-cell sell"><div class="conv-bar"><i style="width:69%"></i></div>69</div></td><td class="num sell">-1.8</td><td class="num">0.36</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip warm">42s</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">7</td><td class="sym">PLTR</td><td class="num">82.14</td><td class="num buy">+0.92</td><td class="num">44%</td><td class="num amber">47%</td><td class="num"><span class="pred-delta">+3.0</span></td><td class="num">62</td><td class="c"><span class="sig-pill hold">HOLD</span></td><td class="num"><div class="conv-cell hold"><div class="conv-bar"><i style="width:52%"></i></div>52</div></td><td class="num dim">+0.2</td><td class="num amber">0.71</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip warm">51s</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">8</td><td class="sym">AMC</td><td class="num">4.18</td><td class="num sell">-1.42</td><td class="num">62%</td><td class="num amber">67%</td><td class="num"><span class="pred-delta">+5.0</span></td><td class="num">38</td><td class="c"><span class="sig-pill sell">SHORT</span></td><td class="num"><div class="conv-cell sell"><div class="conv-bar"><i style="width:64%"></i></div>64</div></td><td class="num sell">-0.9</td><td class="num">0.31</td><td class="flip-cell dn">▼<span class="flip-delta">-3</span></td><td class="num"><span class="fresh-chip warm">58s</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">9</td><td class="sym">GME</td><td class="num">14.22</td><td class="num buy">+1.28</td><td class="num">54%</td><td class="num amber">58%</td><td class="num"><span class="pred-delta">+4.0</span></td><td class="num">48</td><td class="c"><span class="sig-pill hold">HOLD</span></td><td class="num"><div class="conv-cell hold"><div class="conv-bar"><i style="width:44%"></i></div>44</div></td><td class="num dim">-0.1</td><td class="num amber">0.82</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip warm">1:04</span></td><td class="c"><span class="mock-badge">mock</span></td></tr>
+
+          <tr><td class="dim">10</td><td class="sym">NFLX</td><td class="num">622.45</td><td class="num buy">+0.74</td><td class="num">32%</td><td class="num">35%</td><td class="num"><span class="pred-delta">+3.0</span></td><td class="num">44</td><td class="c"><span class="sig-pill buy">BUY</span></td><td class="num"><div class="conv-cell buy"><div class="conv-bar"><i style="width:60%"></i></div>60</div></td><td class="num buy">+0.5</td><td class="num">0.24</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip warm">1:18</span></td><td class="c"><span class="cached-badge">L1</span></td></tr>
+
+          <tr><td class="dim">11</td><td class="sym">MU</td><td class="num">108.32</td><td class="num buy">+1.54</td><td class="num">36%</td><td class="num">39%</td><td class="num"><span class="pred-delta">+3.0</span></td><td class="num">52</td><td class="c"><span class="sig-pill buy">BUY</span></td><td class="num"><div class="conv-cell buy"><div class="conv-bar"><i style="width:58%"></i></div>58</div></td><td class="num buy">+0.6</td><td class="num">0.34</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip warm">1:22</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">12</td><td class="sym">META</td><td class="num">505.03</td><td class="num sell">-0.34</td><td class="num">26%</td><td class="num">32%</td><td class="num"><span class="pred-delta">+6.0</span></td><td class="num">38</td><td class="c"><span class="sig-pill hold">HOLD</span></td><td class="num"><div class="conv-cell hold"><div class="conv-bar"><i style="width:48%"></i></div>48</div></td><td class="num dim">+0.0</td><td class="num amber">0.88</td><td class="flip-cell dn">▼<span class="flip-delta">-12</span></td><td class="num"><span class="fresh-chip warm">1:31</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">13</td><td class="sym">CVNA</td><td class="num">168.90</td><td class="num buy">+2.88</td><td class="num">61%</td><td class="num">64%</td><td class="num"><span class="pred-delta">+3.0</span></td><td class="num">71</td><td class="c"><span class="sig-pill buy">BUY</span></td><td class="num"><div class="conv-cell buy"><div class="conv-bar"><i style="width:76%"></i></div>76</div></td><td class="num buy">+1.9</td><td class="num">0.27</td><td class="flip-cell up">▲<span class="flip-delta">+5</span></td><td class="num"><span class="fresh-chip warm">1:44</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">14</td><td class="sym">UPST</td><td class="num">42.11</td><td class="num sell">-1.92</td><td class="num">58%</td><td class="num">62%</td><td class="num"><span class="pred-delta">+4.0</span></td><td class="num">66</td><td class="c"><span class="sig-pill sell">SHORT</span></td><td class="num"><div class="conv-cell sell"><div class="conv-bar"><i style="width:63%"></i></div>63</div></td><td class="num sell">-1.2</td><td class="num">0.41</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip warm">1:48</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">15</td><td class="sym">SNAP</td><td class="num">11.88</td><td class="num sell">-0.88</td><td class="num">48%</td><td class="num">52%</td><td class="num"><span class="pred-delta">+4.0</span></td><td class="num">40</td><td class="c"><span class="sig-pill hold">HOLD</span></td><td class="num"><div class="conv-cell hold"><div class="conv-bar"><i style="width:46%"></i></div>46</div></td><td class="num dim">-0.1</td><td class="num">0.53</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip stale">2:12</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">16</td><td class="sym">ROKU</td><td class="num">68.24</td><td class="num sell">-1.14</td><td class="num">46%</td><td class="num">49%</td><td class="num"><span class="pred-delta">+3.0</span></td><td class="num">48</td><td class="c"><span class="sig-pill sell">SHORT</span></td><td class="num"><div class="conv-cell sell"><div class="conv-bar"><i style="width:59%"></i></div>59</div></td><td class="num sell">-0.8</td><td class="num">0.38</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip stale">2:18</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">17</td><td class="sym">NKLA</td><td class="num">1.42</td><td class="num buy">+2.14</td><td class="num">78%</td><td class="num">78%</td><td class="num"><span class="pred-delta calm">+0.0</span></td><td class="num">58</td><td class="c"><span class="sig-pill hold">HOLD</span></td><td class="num"><div class="conv-cell hold"><div class="conv-bar"><i style="width:40%"></i></div>40</div></td><td class="num dim">+0.1</td><td class="num amber">0.91</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip stale">2:23</span></td><td class="c"><span class="mock-badge">mock</span></td></tr>
+
+          <tr><td class="dim">18</td><td class="sym">BYND</td><td class="num">6.88</td><td class="num sell">-1.68</td><td class="num">52%</td><td class="num">54%</td><td class="num"><span class="pred-delta">+2.0</span></td><td class="num">44</td><td class="c"><span class="sig-pill sell">SHORT</span></td><td class="num"><div class="conv-cell sell"><div class="conv-bar"><i style="width:54%"></i></div>54</div></td><td class="num sell">-0.7</td><td class="num">0.42</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip stale">2:34</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">19</td><td class="sym">DJT</td><td class="num">32.50</td><td class="num buy">+3.92</td><td class="num">82%</td><td class="num">85%</td><td class="num"><span class="pred-delta">+3.0</span></td><td class="num">72</td><td class="c"><span class="sig-pill buy">BUY</span></td><td class="num"><div class="conv-cell buy"><div class="conv-bar"><i style="width:51%"></i></div>51</div></td><td class="num buy">+0.3</td><td class="num amber">0.74</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip stale">2:52</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">20</td><td class="sym">HOOD</td><td class="num">24.18</td><td class="num buy">+1.08</td><td class="num">42%</td><td class="num">44%</td><td class="num"><span class="pred-delta">+2.0</span></td><td class="num">56</td><td class="c"><span class="sig-pill buy">BUY</span></td><td class="num"><div class="conv-cell buy"><div class="conv-bar"><i style="width:62%"></i></div>62</div></td><td class="num buy">+0.7</td><td class="num">0.33</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip stale">2:58</span></td><td class="c"></td></tr>
+
+          <tr><td colspan="15" class="sep-row">▾ ETF · top 20 by HAR-RV 1d predicted</td></tr>
+
+          <tr><td class="dim">1</td><td class="sym">SOXL</td><td class="num">42.18</td><td class="num buy">+4.12</td><td class="num">58%</td><td class="num amber">62%</td><td class="num"><span class="pred-delta">+4.0</span></td><td class="num">68</td><td class="c"><span class="sig-pill buy">BUY</span></td><td class="num"><div class="conv-cell buy"><div class="conv-bar"><i style="width:81%"></i></div>81</div></td><td class="num buy">+2.1</td><td class="num">0.24</td><td class="flip-cell up">▲<span class="flip-delta">+9</span></td><td class="num"><span class="fresh-chip hot">14s</span></td><td class="c"><span class="stream-badge">●</span></td></tr>
+
+          <tr><td class="dim">2</td><td class="sym">TQQQ</td><td class="num">71.42</td><td class="num buy">+2.84</td><td class="num">42%</td><td class="num amber">46%</td><td class="num"><span class="pred-delta">+4.0</span></td><td class="num">56</td><td class="c"><span class="sig-pill buy">BUY</span></td><td class="num"><div class="conv-cell buy"><div class="conv-bar"><i style="width:69%"></i></div>69</div></td><td class="num buy">+1.3</td><td class="num">0.29</td><td class="flip-cell up">▲<span class="flip-delta">+4</span></td><td class="num"><span class="fresh-chip hot">19s</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">3</td><td class="sym">SQQQ</td><td class="num">8.62</td><td class="num sell">-2.51</td><td class="num">39%</td><td class="num amber">43%</td><td class="num"><span class="pred-delta">+4.0</span></td><td class="num">58</td><td class="c"><span class="sig-pill sell">SHORT</span></td><td class="num"><div class="conv-cell sell"><div class="conv-bar"><i style="width:62%"></i></div>62</div></td><td class="num sell">-1.2</td><td class="num">0.36</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip hot">22s</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">4</td><td class="sym">TNA</td><td class="num">38.90</td><td class="num buy">+3.22</td><td class="num">56%</td><td class="num amber">58%</td><td class="num"><span class="pred-delta">+2.0</span></td><td class="num">61</td><td class="c"><span class="sig-pill buy">BUY</span></td><td class="num"><div class="conv-cell buy"><div class="conv-bar"><i style="width:72%"></i></div>72</div></td><td class="num buy">+1.5</td><td class="num">0.27</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip hot">26s</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">5</td><td class="sym">UVXY</td><td class="num">18.44</td><td class="num buy">+5.68</td><td class="num">91%</td><td class="num amber">88%</td><td class="num"><span class="pred-delta calm">-3.0</span></td><td class="num">84</td><td class="c"><span class="sig-pill hold">HOLD</span></td><td class="num"><div class="conv-cell hold"><div class="conv-bar"><i style="width:38%"></i></div>38</div></td><td class="num dim">+0.2</td><td class="num amber">0.78</td><td class="flip-cell dn">▼<span class="flip-delta">-7</span></td><td class="num"><span class="fresh-chip hot">28s</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">6</td><td class="sym">LABU</td><td class="num">8.12</td><td class="num sell">-1.88</td><td class="num">48%</td><td class="num">51%</td><td class="num"><span class="pred-delta">+3.0</span></td><td class="num">52</td><td class="c"><span class="sig-pill sell">SHORT</span></td><td class="num"><div class="conv-cell sell"><div class="conv-bar"><i style="width:58%"></i></div>58</div></td><td class="num sell">-0.9</td><td class="num">0.35</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip hot">31s</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">7</td><td class="sym">SPXL</td><td class="num">168.24</td><td class="num buy">+2.91</td><td class="num">32%</td><td class="num">35%</td><td class="num"><span class="pred-delta">+3.0</span></td><td class="num">44</td><td class="c"><span class="sig-pill buy">BUY</span></td><td class="num"><div class="conv-cell buy"><div class="conv-bar"><i style="width:64%"></i></div>64</div></td><td class="num buy">+0.8</td><td class="num">0.28</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip warm">38s</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">8</td><td class="sym">SPXS</td><td class="num">14.66</td><td class="num sell">-2.94</td><td class="num">31%</td><td class="num">34%</td><td class="num"><span class="pred-delta">+3.0</span></td><td class="num">41</td><td class="c"><span class="sig-pill sell">SHORT</span></td><td class="num"><div class="conv-cell sell"><div class="conv-bar"><i style="width:56%"></i></div>56</div></td><td class="num sell">-0.6</td><td class="num">0.31</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip warm">41s</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">9</td><td class="sym">ARKK</td><td class="num">58.32</td><td class="num buy">+1.41</td><td class="num">38%</td><td class="num">40%</td><td class="num"><span class="pred-delta">+2.0</span></td><td class="num">47</td><td class="c"><span class="sig-pill buy">BUY</span></td><td class="num"><div class="conv-cell buy"><div class="conv-bar"><i style="width:58%"></i></div>58</div></td><td class="num buy">+0.5</td><td class="num">0.32</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip warm">45s</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">10</td><td class="sym">GDXU</td><td class="num">62.18</td><td class="num buy">+2.24</td><td class="num">52%</td><td class="num">54%</td><td class="num"><span class="pred-delta">+2.0</span></td><td class="num">58</td><td class="c"><span class="sig-pill buy">BUY</span></td><td class="num"><div class="conv-cell buy"><div class="conv-bar"><i style="width:61%"></i></div>61</div></td><td class="num buy">+0.7</td><td class="num">0.38</td><td class="flip-cell up">▲<span class="flip-delta">+3</span></td><td class="num"><span class="fresh-chip warm">52s</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">11</td><td class="sym">BOIL</td><td class="num">4.28</td><td class="num sell">-3.92</td><td class="num">72%</td><td class="num">68%</td><td class="num"><span class="pred-delta calm">-4.0</span></td><td class="num">74</td><td class="c"><span class="sig-pill sell">SHORT</span></td><td class="num"><div class="conv-cell sell"><div class="conv-bar"><i style="width:73%"></i></div>73</div></td><td class="num sell">-2.2</td><td class="num">0.29</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip warm">1:01</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">12</td><td class="sym">KOLD</td><td class="num">18.42</td><td class="num buy">+3.88</td><td class="num">68%</td><td class="num">64%</td><td class="num"><span class="pred-delta calm">-4.0</span></td><td class="num">72</td><td class="c"><span class="sig-pill buy">BUY</span></td><td class="num"><div class="conv-cell buy"><div class="conv-bar"><i style="width:68%"></i></div>68</div></td><td class="num buy">+1.8</td><td class="num">0.31</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip warm">1:08</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">13</td><td class="sym">NUGT</td><td class="num">42.44</td><td class="num buy">+1.94</td><td class="num">48%</td><td class="num">49%</td><td class="num"><span class="pred-delta">+1.0</span></td><td class="num">52</td><td class="c"><span class="sig-pill buy">BUY</span></td><td class="num"><div class="conv-cell buy"><div class="conv-bar"><i style="width:56%"></i></div>56</div></td><td class="num buy">+0.4</td><td class="num">0.36</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip warm">1:14</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">14</td><td class="sym">FAS</td><td class="num">108.22</td><td class="num buy">+1.28</td><td class="num">38%</td><td class="num">41%</td><td class="num"><span class="pred-delta">+3.0</span></td><td class="num">45</td><td class="c"><span class="sig-pill buy">BUY</span></td><td class="num"><div class="conv-cell buy"><div class="conv-bar"><i style="width:53%"></i></div>53</div></td><td class="num buy">+0.3</td><td class="num">0.42</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip warm">1:22</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">15</td><td class="sym">FAZ</td><td class="num">11.88</td><td class="num sell">-1.14</td><td class="num">36%</td><td class="num">40%</td><td class="num"><span class="pred-delta">+4.0</span></td><td class="num">42</td><td class="c"><span class="sig-pill sell">SHORT</span></td><td class="num"><div class="conv-cell sell"><div class="conv-bar"><i style="width:48%"></i></div>48</div></td><td class="num sell">-0.3</td><td class="num amber">0.68</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip warm">1:28</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">16</td><td class="sym">URA</td><td class="num">32.18</td><td class="num buy">+2.84</td><td class="num">44%</td><td class="num">46%</td><td class="num"><span class="pred-delta">+2.0</span></td><td class="num">58</td><td class="c"><span class="sig-pill buy">BUY</span></td><td class="num"><div class="conv-cell buy"><div class="conv-bar"><i style="width:64%"></i></div>64</div></td><td class="num buy">+0.9</td><td class="num">0.33</td><td class="flip-cell up">▲<span class="flip-delta">+6</span></td><td class="num"><span class="fresh-chip stale">1:54</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">17</td><td class="sym">BITI</td><td class="num">26.44</td><td class="num sell">-3.12</td><td class="num">58%</td><td class="num">61%</td><td class="num"><span class="pred-delta">+3.0</span></td><td class="num">66</td><td class="c"><span class="sig-pill sell">SHORT</span></td><td class="num"><div class="conv-cell sell"><div class="conv-bar"><i style="width:68%"></i></div>68</div></td><td class="num sell">-1.4</td><td class="num">0.34</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip stale">2:02</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">18</td><td class="sym">BITX</td><td class="num">36.92</td><td class="num buy">+3.84</td><td class="num">56%</td><td class="num">58%</td><td class="num"><span class="pred-delta">+2.0</span></td><td class="num">62</td><td class="c"><span class="sig-pill buy">BUY</span></td><td class="num"><div class="conv-cell buy"><div class="conv-bar"><i style="width:67%"></i></div>67</div></td><td class="num buy">+1.2</td><td class="num">0.37</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip stale">2:11</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">19</td><td class="sym">YINN</td><td class="num">18.22</td><td class="num sell">-1.42</td><td class="num">46%</td><td class="num">48%</td><td class="num"><span class="pred-delta">+2.0</span></td><td class="num">52</td><td class="c"><span class="sig-pill hold">HOLD</span></td><td class="num"><div class="conv-cell hold"><div class="conv-bar"><i style="width:41%"></i></div>41</div></td><td class="num dim">-0.1</td><td class="num amber">0.76</td><td class="flip-cell dn">▼<span class="flip-delta">-5</span></td><td class="num"><span class="fresh-chip stale">2:24</span></td><td class="c"></td></tr>
+
+          <tr><td class="dim">20</td><td class="sym">YANG</td><td class="num">14.32</td><td class="num buy">+1.28</td><td class="num">44%</td><td class="num">46%</td><td class="num"><span class="pred-delta">+2.0</span></td><td class="num">48</td><td class="c"><span class="sig-pill buy">BUY</span></td><td class="num"><div class="conv-cell buy"><div class="conv-bar"><i style="width:55%"></i></div>55</div></td><td class="num buy">+0.4</td><td class="num">0.39</td><td class="flip-cell eq">─</td><td class="num"><span class="fresh-chip stale">2:38</span></td><td class="c"></td></tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ========= TAB BAR ========= -->
+    <div class="tabbar">
+      <div class="tab on">Inspector <span class="k">⌘1</span></div>
+      <div class="tab">Chart <span class="k">⌘2</span></div>
+      <div class="tab">Options <span class="k">⌘3</span></div>
+      <div class="tab">Debate Full <span class="k">⌘4</span></div>
+      <div class="tab">Backtest <span class="k">⌘5</span></div>
+      <div class="tab">Settings <span class="k">⌘6</span></div>
+    </div>
+
+    <!-- ========= INSPECTOR CARD (user's image 1 layout) ========= -->
+    <div class="tab-content">
+      <div class="inspector">
+
+        <div class="insp-head">
+          <div class="insp-tk">NVDA</div>
+          <div class="insp-co">NVIDIA Corp</div>
+          <div class="insp-sep">·</div>
+          <div class="insp-meta">last 11:33:58 ET · updated 12s ago · agent-set-v1</div>
+          <div class="insp-px">$912.40 <span class="insp-chg buy">+$20.71 +2.14%</span></div>
+        </div>
+
+        <div class="verdict-box buy">
+          <div class="actions">
+            <button class="btn" style="padding:4px 8px;font-size:10px">Rerun</button>
+            <button class="btn" style="padding:4px 8px;font-size:10px">Pin</button>
+            <button class="btn" style="padding:4px 8px;font-size:10px">Copy</button>
+          </div>
+          <div class="vlbl">VERDICT · synthesis agent</div>
+          <div class="vsig">BUY</div>
+          <div class="vstats">
+            <span>conviction <b>78</b> / 100</span>
+            <span>EV <b class="buy">+1.4%</b></span>
+            <span>agreement <b>0.69</b></span>
+            <span>disagreement score <b>0.31</b></span>
+          </div>
+          <div class="vbar"><i></i></div>
+        </div>
+
+        <div class="because">
+          <b>Because:</b> data-center rev +112% YoY beats street by $1.8B. Base rate for gap-up &gt;2% on earnings: 61% hold EOD. Options skew already priced 40% of move — remaining edge modest. Antithesis flagged valuation (P/E 32 vs 18 peer) but synthesis rejected given buyback floor.
+        </div>
+
+        <div class="sect">
+          <div class="sect-head">DEBATE ROLLUP (3 arguers + judge) <span class="src">· sonnet-4-5 · 4.2s</span></div>
+          <div class="debate-row">
+            <div class="ag-card bull">
+              <div class="ag-lbl">Thesis</div>
+              <div class="ag-stance">BUY</div>
+              <div class="ag-conf">conf <b>72%</b></div>
+              <div class="ag-bar"><i style="width:72%"></i></div>
+            </div>
+            <div class="ag-card bear">
+              <div class="ag-lbl">Antithesis</div>
+              <div class="ag-stance">SHORT</div>
+              <div class="ag-conf">conf <b>41%</b></div>
+              <div class="ag-bar"><i style="width:41%"></i></div>
+            </div>
+            <div class="ag-card base">
+              <div class="ag-lbl">Base Rate</div>
+              <div class="ag-stance">NEUT</div>
+              <div class="ag-conf">P(up)=<b>0.55</b></div>
+              <div class="ag-bar"><i style="width:55%"></i></div>
+            </div>
+            <div class="ag-card synth">
+              <div class="ag-lbl">Synthesis · judge</div>
+              <div class="ag-stance">BUY · conv 78</div>
+              <div class="synth-detail">sided with <span class="hit">Thesis</span> + <span class="hit">Base Rate</span> · rejected <span class="miss">Antithesis</span> valuation arg · 3/3 must-be-true met · 0 factual errors flagged</div>
+              <div class="ag-bar"><i style="width:78%"></i></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sect">
+          <div class="sect-head">VOLATILITY · predicted vs current <span class="src">· HAR-RV Ridge · tier0 · log target</span></div>
+          <div class="vol-panel">
+            <div class="vol-kv">
+              <div class="row"><span class="k">RV 20d (GK)</span><span class="v">28%</span></div>
+              <div class="row"><span class="k">HAR-RV 1d forecast</span><span class="v amber">31% (+3.0)</span></div>
+              <div class="row"><span class="k">HAR-RV 5d forecast</span><span class="v amber">30% (+2.0)</span></div>
+              <div class="row"><span class="k">ATM IV 30d</span><span class="v amber">34% (rich)</span></div>
+              <div class="row"><span class="k">IV rank 1y</span><span class="v">74</span></div>
+              <div class="row"><span class="k">25Δ skew</span><span class="v">-3.2</span></div>
+              <div class="row"><span class="k">model version</span><span class="v dim">har_rv_ridge_v1 · trained 2026-04-05</span></div>
+            </div>
+            <div class="vol-chart">
+              <svg viewBox="0 0 250 80" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stop-color="#4fc3f7" stop-opacity="0.25"/>
+                    <stop offset="100%" stop-color="#4fc3f7" stop-opacity="0.05"/>
+                  </linearGradient>
+                </defs>
+                <path d="M 10 55 Q 70 48 130 42 T 240 36 L 240 62 Q 180 64 130 66 T 10 68 Z" fill="url(#g1)"/>
+                <path d="M 10 62 Q 70 56 130 54 T 240 48" fill="none" stroke="#6e7a91" stroke-width="0.8" stroke-dasharray="2,2"/>
+                <line x1="10" y1="22" x2="240" y2="26" stroke="#9ba7bb" stroke-width="0.8" stroke-dasharray="4,2"/>
+                <text x="190" y="18" fill="#9ba7bb" font-size="8" font-family="JetBrains Mono">IV30 34%</text>
+                <circle cx="45" cy="52" r="3" fill="#4fc3f7"/>
+                <text x="52" y="56" fill="#4fc3f7" font-size="8" font-family="JetBrains Mono">RV20 28</text>
+                <circle cx="100" cy="42" r="3" fill="#ec7e00"/>
+                <text x="108" y="38" fill="#ec7e00" font-size="8" font-family="JetBrains Mono">H1d 31</text>
+                <circle cx="165" cy="44" r="3" fill="#ec7e00"/>
+                <text x="172" y="48" fill="#ec7e00" font-size="8" font-family="JetBrains Mono">H5d 30</text>
+                <line x1="10" y1="74" x2="240" y2="74" stroke="#1c2230"/>
+                <text x="10" y="79" fill="#47536a" font-size="7" font-family="JetBrains Mono">1d</text>
+                <text x="95" y="79" fill="#47536a" font-size="7" font-family="JetBrains Mono">5d</text>
+                <text x="165" y="79" fill="#47536a" font-size="7" font-family="JetBrains Mono">20d</text>
+                <text x="225" y="79" fill="#47536a" font-size="7" font-family="JetBrains Mono">60d</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="sect">
+          <div class="sect-head">SENTIMENT CONSENSUS <span class="src">· weighted z-score · 5 streams</span></div>
+          <div class="sent-grid">
+            <div class="sent-cell"><div class="lbl">News</div><div class="v buy">+0.62</div></div>
+            <div class="sent-cell"><div class="lbl">Reddit</div><div class="v buy">+0.78</div></div>
+            <div class="sent-cell"><div class="lbl">Congress</div><div class="v hold">-0.05</div></div>
+            <div class="sent-cell"><div class="lbl">Insider</div><div class="v sell">-0.21</div></div>
+            <div class="sent-cell"><div class="lbl">F&amp;G idx</div><div class="v amber">72</div></div>
+            <div class="sent-cell composite"><div class="lbl">Composite</div><div class="v">+0.42</div></div>
+          </div>
+        </div>
+
+        <div class="sect">
+          <div class="sect-head">OPTIONS CONTEXT <span class="src">· yfinance option chain · 3m cache</span></div>
+          <div class="opt-grid">
+            <div class="opt-cell"><div class="k">Put/Call ratio</div><div class="v">0.86</div></div>
+            <div class="opt-cell"><div class="k">IV rank (1y)</div><div class="v amber">74 rich</div></div>
+            <div class="opt-cell"><div class="k">25Δ skew</div><div class="v">-3.2</div></div>
+            <div class="opt-cell"><div class="k">Max pain</div><div class="v">905</div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ================ RIGHT COLUMN ================ -->
+  <div class="right">
+
+    <!-- DIVERGENCE (user's image 2 — upgraded) -->
+    <div class="right-sect div-panel" style="padding:14px">
+      <h3>
+        <span>Divergence · NVDA</span>
+        <span class="tag bull">BULLISH LEAN</span>
+      </h3>
+      <div class="div-comp">
+        <div class="val buy">+0.142</div>
+        <div class="dim" style="font-family:var(--mono);font-size:9px">composite · weighted 5-dim z-score</div>
+      </div>
+      <div class="div-bars">
+        <div class="div-row">
+          <span class="dlbl">institutional</span>
+          <div class="dtrack">
+            <div class="dseg bull-lean" style="left:50%;width:14%"></div>
+          </div>
+          <span class="dval bull">+0.288</span>
+        </div>
+        <div class="div-row">
+          <span class="dlbl">options</span>
+          <div class="dtrack">
+            <div class="dseg bull" style="left:50%;width:22%"></div>
+          </div>
+          <span class="dval bull">+0.441</span>
+        </div>
+        <div class="div-row">
+          <span class="dlbl">price action</span>
+          <div class="dtrack">
+            <div class="dseg bull" style="left:50%;width:15%"></div>
+          </div>
+          <span class="dval bull">+0.312</span>
+        </div>
+        <div class="div-row">
+          <span class="dlbl">news</span>
+          <div class="dtrack">
+            <div class="dseg bull-lean" style="left:50%;width:8%"></div>
+          </div>
+          <span class="dval bull">+0.164</span>
+        </div>
+        <div class="div-row">
+          <span class="dlbl">retail</span>
+          <div class="dtrack">
+            <div class="dseg bear-lean" style="left:45%;width:5%"></div>
+          </div>
+          <span class="dval bear">-0.098</span>
+        </div>
+      </div>
+      <div class="div-weights">
+        <span>weights: inst 0.35 · opt 0.25 · px 0.20 · news 0.15 · retail 0.05</span>
+      </div>
+    </div>
+
+    <!-- AGENT PIPELINE — live for selected ticker -->
+    <div class="right-sect">
+      <h3>
+        <span>Agent Pipeline · NVDA</span>
+        <span class="dim" style="font-family:var(--mono);font-size:9px">4.2s · $0.023</span>
+      </h3>
+      <div class="pipe-status">
+        <div class="pipe-row"><span class="plbl">materialize</span><span class="pstate done">✓ done</span><span class="ptime">0.8s</span></div>
+        <div class="pipe-row"><span class="plbl">thesis</span><span class="pstate done">✓ BUY 72</span><span class="ptime">1.9s</span></div>
+        <div class="pipe-row"><span class="plbl">antithesis</span><span class="pstate done">✓ SHORT 41</span><span class="ptime">2.1s</span></div>
+        <div class="pipe-row"><span class="plbl">base_rate</span><span class="pstate done">✓ NEUT 55</span><span class="ptime">0.7s</span></div>
+        <div class="pipe-row"><span class="plbl">synthesis</span><span class="pstate done">✓ BUY 78</span><span class="ptime">3.2s</span></div>
+        <div class="pipe-row"><span class="plbl">har-rv</span><span class="pstate done">✓ pred 31</span><span class="ptime">0.1s</span></div>
+        <div class="pipe-row"><span class="plbl">risk</span><span class="pstate done">✓ MEDIUM</span><span class="ptime">0.1s</span></div>
+      </div>
+    </div>
+
+    <!-- NEWS FEED — filtered to 40 universe -->
+    <div class="right-sect" style="flex:1;overflow:auto">
+      <h3>
+        <span>News · Universe</span>
+        <span class="dim" style="font-family:var(--mono);font-size:9px">28 items · composite ranked</span>
+      </h3>
+      <div class="news-list">
+
+        <div class="news-row brk">
+          <div class="score">92</div>
+          <div>
+            <div class="hl"><span class="hl-sym">NVDA</span>beats Q3, raises guide on data-center strength</div>
+            <div class="meta"><span>Reuters +4</span><span class="tag-inline up">EARN</span><span class="tag-inline up">GUIDE</span><span>· sent +0.62</span></div>
+          </div>
+          <div class="age">2m</div>
+        </div>
+
+        <div class="news-row brk">
+          <div class="score">87</div>
+          <div>
+            <div class="hl"><span class="hl-sym">LLY</span>FDA approves obesity drug for adolescents</div>
+            <div class="meta"><span>Bloomberg +2</span><span class="tag-inline fda">FDA</span><span>· sent +0.71</span></div>
+          </div>
+          <div class="age">3m</div>
+        </div>
+
+        <div class="news-row">
+          <div class="score mid">78</div>
+          <div>
+            <div class="hl"><span class="hl-sym">TSLA</span>Q4 delivery miss below whisper, guide conservative</div>
+            <div class="meta"><span>Barron's +3</span><span class="tag-inline down">MISS</span><span>· sent -0.52</span></div>
+          </div>
+          <div class="age">23m</div>
+        </div>
+
+        <div class="news-row">
+          <div class="score mid">72</div>
+          <div>
+            <div class="hl"><span class="hl-sym">AMD</span>Morgan Stanley upgrade to Overweight, PT $200</div>
+            <div class="meta"><span>Benzinga</span><span class="tag-inline up">UPGRADE</span><span>· sent +0.55</span></div>
+          </div>
+          <div class="age">31m</div>
+        </div>
+
+        <div class="news-row">
+          <div class="score mid">68</div>
+          <div>
+            <div class="hl"><span class="hl-sym">MARA</span>Bitcoin mining capacity up 18% QoQ</div>
+            <div class="meta"><span>CoinDesk +2</span><span class="tag-inline up">CAPACITY</span><span>· sent +0.48</span></div>
+          </div>
+          <div class="age">44m</div>
+        </div>
+
+        <div class="news-row">
+          <div class="score low">54</div>
+          <div>
+            <div class="hl"><span class="hl-sym">CVNA</span>Used car sales decelerating, guide holds</div>
+            <div class="meta"><span>WSJ</span><span>· sent +0.21</span></div>
+          </div>
+          <div class="age">1h</div>
+        </div>
+
+        <div class="news-row">
+          <div class="score low">47</div>
+          <div>
+            <div class="hl"><span class="hl-sym">COIN</span>MiCA license filing for EU market</div>
+            <div class="meta"><span>Bloomberg</span><span class="tag-inline">REG</span><span>· sent +0.18</span></div>
+          </div>
+          <div class="age">1h 14m</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- footer -->
+<div class="footer">
+  <span><b>1-20</b> nav ticker</span><span class="sep">·</span>
+  <span><b>j/k</b> row</span><span class="sep">·</span>
+  <span><b>Enter</b> open inspector</span><span class="sep">·</span>
+  <span><b>F</b> fast refresh</span><span class="sep">·</span>
+  <span><b>⌘R</b> deep debate</span><span class="sep">·</span>
+  <span><b>L/S</b> longs/shorts filter</span><span class="sep">·</span>
+  <span><b>⌘K</b> palette</span>
+  <span class="sep">·</span>
+  <span class="ko">v3 mockup · not production</span>
+  <span class="sep">·</span>
+  <span>agents parallelized · sem=20 · sonnet-4-5 synth · Tier 0 (18 factors)</span>
+</div>
+
+</body>
+</html>

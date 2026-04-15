@@ -30,6 +30,10 @@ dependencies = [
     "tqdm>=4.67.1",
     "typing-extensions>=4.14.0",
     "yfinance>=0.2.63",
+    "scikit-learn>=1.6.0",
+    "joblib>=1.5.0",
+    "scipy>=1.13.0",
+    "pyarrow>=14.0.0",
 ]
 
 [project.scripts]
@@ -40,3 +44,12 @@ include = ["tradingagents*", "cli*"]
 
 [tool.setuptools.package-data]
 cli = ["static/*"]
+
+[tool.pytest.ini_options]
+markers = [
+    "unit: unit tests (fast, isolated, no network)",
+    "integration: integration tests (may hit DB or mocked HTTP)",
+    "slow: tests that take > 1s individually",
+    "replay: replay / regression tests against fixtures",
+    "live: tests that hit real external APIs (skip in CI by default)",
+]

@@ -26,7 +26,7 @@ _DB_CONFIG = {
     "port": int(os.environ.get("CAPITALIQ_PORT", "5432")),
     "dbname": os.environ.get("CAPITALIQ_DBNAME", "postgres"),
     "user": os.environ.get("CAPITALIQ_USER", "readonly"),
-    "password": os.environ.get("CAPITALIQ_PASSWORD", "3lGzwDY0G8"),
+    "password": os.environ.get("CAPITALIQ_PASSWORD", ""),
     "options": "-c search_path=capitaliq,public",
 }
 
@@ -74,6 +74,10 @@ class CapitalIQConnector(BaseConnector):
             raise ConnectorError("psycopg2-binary not installed. Run: pip install psycopg2-binary")
         except Exception as exc:
             raise ConnectorError(f"Cannot connect to Capital IQ database: {exc}") from exc
+
+    @property
+    def probe_data_type(self) -> str:
+        return "ohlcv"
 
     def _fetch_impl(self, ticker: str, params: dict[str, Any]) -> dict[str, Any]:
         data_type = params.get("data_type", "ohlcv")

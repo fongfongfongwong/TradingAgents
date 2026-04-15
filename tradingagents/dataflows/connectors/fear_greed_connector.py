@@ -61,6 +61,10 @@ class FearGreedConnector(BaseConnector):
         self._session.close()
         super().disconnect()
 
+    @property
+    def probe_data_type(self) -> str:
+        return "current"
+
     def _fetch_impl(self, ticker: str, params: dict[str, Any]) -> dict[str, Any]:
         data_type = params.get("data_type", "current")
         if data_type != "current":

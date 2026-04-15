@@ -29,6 +29,7 @@ class ConnectorCategory(str, Enum):
     REGULATORY = "regulatory"
     ALTERNATIVE = "alternative"
     DIVERGENCE = "divergence"
+    OPTIONS = "options"
 
 
 class _TokenBucket:
@@ -148,6 +149,18 @@ class BaseConnector(ABC):
     @abstractmethod
     def _fetch_impl(self, ticker: str, params: dict[str, Any]) -> dict[str, Any]:
         """Vendor-specific fetch logic. Subclasses must implement."""
+
+    # -- probe support --------------------------------------------------------
+
+    @property
+    def probe_data_type(self) -> str:
+        """Return the best data_type string to use for health probing.
+
+        Subclasses can override this to pick a lightweight, always-available
+        type that doesn't require special parameters.  The default returns
+        ``"default"`` which the probe engine will use as-is.
+        """
+        return "default"
 
     # -- health / status ------------------------------------------------------
 
