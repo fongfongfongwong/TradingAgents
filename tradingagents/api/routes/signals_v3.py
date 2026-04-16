@@ -561,6 +561,14 @@ async def _run_batch_with_progress(
             item = await _run_one(
                 ticker, analysis_date, force=force, on_event=on_stage,
             )
+            # Enrich cached items with real-time prices — ensures PX/Δ%
+            # columns populate for L1/L2 cache hits too.
+            try:
+                enriched = await _enrich_prices([item])
+                if enriched:
+                    item = enriched[0]
+            except Exception:
+                logger.debug("Per-ticker price enrichment failed", exc_info=True)
             item_dict = item.model_dump(mode="json")
             rec["results"].append(item_dict)
             rec["last_signal"] = item.signal

@@ -228,6 +228,14 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Check if an error is an AbortError (expected on unmount/navigation).
+ * Callers that care should filter these out rather than logging them.
+ */
+export function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "AbortError";
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,

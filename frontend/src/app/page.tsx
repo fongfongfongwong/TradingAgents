@@ -1189,6 +1189,16 @@ export default function DashboardPage() {
                       className={`news-row ${isBreaking ? "brk" : ""}`}
                       style={{ cursor: "pointer" }}
                       onClick={() => setExpandedNews(isExpanded ? null : newsExpandKey)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setExpandedNews(isExpanded ? null : newsExpandKey);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={isExpanded}
+                      aria-label={`${item.title ?? "news item"} (press Enter to ${isExpanded ? "collapse" : "expand"})`}
                     >
                       <div className={`score ${scoreClass}`}>{score}</div>
                       <div>

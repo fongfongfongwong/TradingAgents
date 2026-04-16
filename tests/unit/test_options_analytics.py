@@ -155,9 +155,11 @@ def test_compute_options_analytics_aapl_happy_path() -> None:
         pytest.xfail(f"yfinance returned no options chain: {result.error}")
         return
 
-    # PCR and max pain are the most reliable fields across tickers.
-    assert result.put_call_ratio is not None
-    assert result.put_call_ratio >= 0.0
+    # Max pain is the most reliable field — it only needs strikes.
+    # PCR requires non-zero OI or volume across the chain, which yfinance
+    # does not always provide for a given expiry, so we tolerate None.
+    if result.put_call_ratio is not None:
+        assert result.put_call_ratio >= 0.0
     assert result.max_pain_price is not None
     assert result.max_pain_price > 0.0
 
@@ -206,7 +208,7 @@ def test_materializer_options_context_populated_or_falls_back() -> None:
         assert options.iv_skew_25d is None
         assert options.max_pain_price is None
     else:
-        # Full analytics path — at least PCR and max pain must be populated.
-        assert options.put_call_ratio is not None
+        # Full analytics path — max pain must be populated (needs only strikes).
+        # PCR requires non-zero OI/volume; yfinance data can be thin, so allow None.
         assert options.max_pain_price is not None
         assert options.max_pain_price > 0.0
