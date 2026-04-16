@@ -78,7 +78,21 @@ class PriceContext(BaseModel):
 
 
 class OptionsContext(BaseModel):
-    """Options market summary."""
+    """Options market summary.
+
+    Fields come from two cascading providers:
+
+    * **OI-based fields** (``put_call_ratio``, ``iv_rank_percentile``,
+      ``iv_skew_25d``, ``max_pain_price``, ``unusual_activity_summary``) come
+      from yfinance option chains. Free, lagging up to 1 day.
+    * **Trade-flow fields** (``flow_put_call_ratio``, ``large_trade_bias``)
+      come from Databento OPRA trades when the paid feed is available. They
+      reflect real-time institutional flow and are more predictive than
+      OI-based PCR for same-day direction.
+    * ``trade_flow_source`` tags the origin of the flow data
+      (``"databento"`` / ``"yfinance"`` / ``None``) so downstream agents can
+      weight it appropriately.
+    """
 
     put_call_ratio: float | None = None
     iv_rank_percentile: float | None = None
@@ -86,6 +100,10 @@ class OptionsContext(BaseModel):
     max_pain_price: float | None = None
     unusual_activity_summary: str = ""
     data_age_seconds: int = 0
+    # --- Trade-flow enrichment (Databento OPRA, optional) -----------------
+    flow_put_call_ratio: float | None = None
+    large_trade_bias: float | None = None
+    trade_flow_source: str | None = None
 
 
 class VolRegime(str, Enum):

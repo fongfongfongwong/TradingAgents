@@ -1016,6 +1016,9 @@ def _build_options_context(
             max_pain_price=analytics.max_pain_price,
             unusual_activity_summary=analytics.unusual_activity_summary or "",
             data_age_seconds=int(time.time() - fetch_start),
+            flow_put_call_ratio=analytics.flow_put_call_ratio,
+            large_trade_bias=analytics.large_trade_bias,
+            trade_flow_source=analytics.trade_flow_source,
         )
 
     # Analytics pipeline failed — mark and try the legacy yfinance path.

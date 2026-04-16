@@ -46,7 +46,14 @@ __all__ = [
 
 @dataclass(frozen=True)
 class OptionsAnalyticsResult:
-    """Immutable container for option-chain derived analytics."""
+    """Immutable container for option-chain derived analytics.
+
+    OI-based fields (``put_call_ratio`` etc.) come from yfinance; the
+    trade-flow fields (``flow_put_call_ratio``, ``large_trade_bias``,
+    ``trade_flow_source``) are populated when the paid Databento OPRA feed
+    succeeds. All trade-flow fields default to ``None`` so the result stays
+    compatible with callers that only care about the OI path.
+    """
 
     put_call_ratio: float | None
     iv_rank_percentile: float | None
@@ -55,6 +62,10 @@ class OptionsAnalyticsResult:
     unusual_activity_summary: str | None
     fetched_ok: bool
     error: str | None
+    # Trade-flow enrichment (Databento OPRA, optional)
+    flow_put_call_ratio: float | None = None
+    large_trade_bias: float | None = None
+    trade_flow_source: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -512,6 +523,10 @@ def compute_options_analytics(
 
         unusual = find_unusual_activity(ticker, calls_rows, puts_rows)
 
+        # Databento trade-flow enrichment (best-effort, never blocks the
+        # OI-based analytics). Returns None if the paid feed isn't wired.
+        flow = _fetch_databento_flow(ticker, today)
+
         result = OptionsAnalyticsResult(
             put_call_ratio=pcr,
             iv_rank_percentile=iv_rank,
@@ -520,6 +535,9 @@ def compute_options_analytics(
             unusual_activity_summary=unusual if unusual else None,
             fetched_ok=True,
             error=None,
+            flow_put_call_ratio=(flow or {}).get("flow_put_call_ratio"),
+            large_trade_bias=(flow or {}).get("large_trade_bias"),
+            trade_flow_source=(flow or {}).get("trade_flow_source"),
         )
         _RESULT_CACHE[cache_key] = result
         return result
@@ -541,6 +559,92 @@ def _reset_caches_for_tests() -> None:
     """Clear memoisation tables — intended for test isolation only."""
     _RESULT_CACHE.clear()
     _IV_RANK_CACHE.clear()
+    _FLOW_CACHE.clear()
+
+
+# ---------------------------------------------------------------------------
+# Databento trade-flow enrichment (paid OPRA feed)
+# ---------------------------------------------------------------------------
+
+
+# Per-day memo of the trade-flow result so each ticker is only fetched once.
+# Key: (ticker, YYYY-MM-DD)  Value: dict with {flow_pcr, large_trade_bias, source}
+_FLOW_CACHE: dict[tuple[str, str], dict[str, Any] | None] = {}
+
+# A single large trade is >= this many contracts — matches the threshold used
+# by DatabentoOptionsConnector._fetch_flow for consistency across the system.
+_LARGE_TRADE_THRESHOLD: int = 100
+
+
+def _fetch_databento_flow(ticker: str, today: date) -> dict[str, Any] | None:
+    """Fetch real-time trade-flow PCR and large-trade bias from Databento.
+
+    Returns ``None`` when:
+
+    * ``DATABENTO_API_KEY`` is not configured.
+    * The ``databento`` package is not installed.
+    * The connector raises for any reason (bad response, rate limit, etc.).
+
+    A ``None`` return is not an error condition — it just means the caller
+    should fall back to the yfinance-based OI fields without trade-flow
+    enrichment. Success cases return a dict with ``flow_put_call_ratio``,
+    ``large_trade_bias`` and ``trade_flow_source`` keys.
+    """
+    cache_key = (ticker, today.isoformat())
+    if cache_key in _FLOW_CACHE:
+        return _FLOW_CACHE[cache_key]
+
+    import os
+
+    if not os.environ.get("DATABENTO_API_KEY", "").strip():
+        _FLOW_CACHE[cache_key] = None
+        return None
+
+    try:
+        from tradingagents.dataflows.connectors.databento_options_connector import (
+            DatabentoOptionsConnector,
+        )
+
+        connector = DatabentoOptionsConnector()
+        connector.connect()
+        payload = connector._fetch_impl(  # noqa: SLF001 — intentional internal call
+            ticker,
+            {"data_type": "flow", "large_trade_threshold": _LARGE_TRADE_THRESHOLD},
+        )
+    except Exception:  # noqa: BLE001 — any failure just disables enrichment
+        _FLOW_CACHE[cache_key] = None
+        return None
+
+    flow_pcr = payload.get("put_call_ratio")
+    if isinstance(flow_pcr, (int, float)):
+        flow_pcr = round(float(flow_pcr), 4)
+    else:
+        flow_pcr = None
+
+    # Large-trade bias in [-1, +1]: positive = call-heavy institutional flow,
+    # negative = put-heavy. Normalised by total large-trade volume so the
+    # metric is scale-free across tickers.
+    large_call = float(payload.get("large_call_volume") or 0.0)
+    large_put = float(payload.get("large_put_volume") or 0.0)
+    large_total = large_call + large_put
+    if large_total > 0.0:
+        large_trade_bias: float | None = round(
+            (large_call - large_put) / large_total, 4
+        )
+    else:
+        large_trade_bias = None
+
+    if flow_pcr is None and large_trade_bias is None:
+        _FLOW_CACHE[cache_key] = None
+        return None
+
+    result = {
+        "flow_put_call_ratio": flow_pcr,
+        "large_trade_bias": large_trade_bias,
+        "trade_flow_source": "databento",
+    }
+    _FLOW_CACHE[cache_key] = result
+    return result
 
 
 # Silence "imported but unused" for timedelta (kept for possible future use).

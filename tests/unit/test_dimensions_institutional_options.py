@@ -208,3 +208,99 @@ class TestOptionsCombined:
         result = self.dim.compute("SPY", put_call_data={})
         assert result["value"] == 0.0
         assert result["confidence"] == 0.0
+
+
+class TestOptionsFlowDivergence:
+    """Tests for the Databento trade-flow divergence signals."""
+
+    def setup_method(self) -> None:
+        self.dim = OptionsDimension()
+
+    def test_flow_data_added_to_sources(self) -> None:
+        """Flow-derived inputs should appear as sources when supplied."""
+        result = self.dim.compute(
+            "SPY",
+            put_call_data={"ratio": 0.85},
+            vix_data={"level": 22},
+            flow_data={"flow_pcr": 0.85, "large_trade_bias": 0.0},
+        )
+        assert "trade_flow_pcr" in result["sources"]
+        assert "large_trade_bias" in result["sources"]
+        # PC + VIX + flow_pcr + large_trade = 0.50 + 0.40 + 0.10 + 0.05
+        # = 1.05, clamped to 1.0.
+        assert result["confidence"] == pytest.approx(1.0)
+
+    def test_flow_vs_oi_divergence_positive_when_flow_more_bullish(self) -> None:
+        """OI says slightly bearish (1.0), flow says bullish (0.5) → gap > 0
+        → positive divergence signal (new long positioning)."""
+        result = self.dim.compute(
+            "SPY",
+            put_call_data={"ratio": 1.0},
+            flow_data={"flow_pcr": 0.5},
+        )
+        raw = result["raw_data"]
+        assert "flow_divergence_score" in raw
+        assert raw["flow_divergence_score"] > 0.0
+
+    def test_flow_vs_oi_divergence_negative_when_flow_more_bearish(self) -> None:
+        """Flow PCR much higher than OI → fresh short positioning."""
+        result = self.dim.compute(
+            "SPY",
+            put_call_data={"ratio": 0.7},
+            flow_data={"flow_pcr": 1.2},
+        )
+        raw = result["raw_data"]
+        assert raw["flow_divergence_score"] < 0.0
+
+    def test_noise_floor_absorbs_tiny_gaps(self) -> None:
+        """|gap| < 0.05 should collapse to zero (noise)."""
+        result = self.dim.compute(
+            "SPY",
+            put_call_data={"ratio": 0.80},
+            flow_data={"flow_pcr": 0.82},
+        )
+        raw = result["raw_data"]
+        assert raw["flow_divergence_score"] == 0.0
+
+    def test_large_trade_bias_contributes_to_value(self) -> None:
+        """Large-trade bias alone shifts the dimension value."""
+        # Bullish large-trade bias in isolation.
+        res_bull = self.dim.compute(
+            "SPY",
+            flow_data={"flow_pcr": 0.85, "large_trade_bias": 0.8},
+        )
+        # Neutral large-trade bias with same flow PCR.
+        res_neu = self.dim.compute(
+            "SPY",
+            flow_data={"flow_pcr": 0.85, "large_trade_bias": 0.0},
+        )
+        assert res_bull["value"] > res_neu["value"]
+
+    def test_confidence_rises_with_paid_feed(self) -> None:
+        """Paid-feed inputs should push confidence above the 0.9 PC+VIX
+        baseline."""
+        baseline = self.dim.compute(
+            "SPY",
+            put_call_data={"ratio": 0.85},
+            vix_data={"level": 22},
+        )
+        enriched = self.dim.compute(
+            "SPY",
+            put_call_data={"ratio": 0.85},
+            vix_data={"level": 22},
+            flow_data={"flow_pcr": 0.60, "large_trade_bias": 0.2},
+        )
+        assert enriched["confidence"] > baseline["confidence"]
+        assert enriched["confidence"] <= 1.0
+
+    def test_flow_data_none_preserves_legacy_behaviour(self) -> None:
+        """When flow_data is not provided the result should match the
+        pre-enrichment baseline exactly."""
+        legacy = self.dim.compute(
+            "SPY",
+            put_call_data={"ratio": 1.2},
+            vix_data={"level": 35},
+        )
+        assert legacy["value"] == pytest.approx(-1.0)
+        assert legacy["confidence"] == pytest.approx(0.9)
+        assert "trade_flow_pcr" not in legacy["sources"]

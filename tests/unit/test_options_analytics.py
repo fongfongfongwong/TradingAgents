@@ -212,3 +212,78 @@ def test_materializer_options_context_populated_or_falls_back() -> None:
         # PCR requires non-zero OI/volume; yfinance data can be thin, so allow None.
         assert options.max_pain_price is not None
         assert options.max_pain_price > 0.0
+
+
+# ---------------------------------------------------------------------------
+# Databento trade-flow enrichment
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+def test_flow_fetcher_returns_none_when_api_key_missing(monkeypatch) -> None:
+    """With no ``DATABENTO_API_KEY``, the flow fetcher must no-op cleanly."""
+    from datetime import date
+
+    from tradingagents.data.sources import options_analytics as oa
+
+    monkeypatch.delenv("DATABENTO_API_KEY", raising=False)
+    # Bypass any in-process cache left by the autouse fixture.
+    oa._reset_caches_for_tests()
+
+    assert oa._fetch_databento_flow("AAPL", date.today()) is None
+
+
+@pytest.mark.unit
+def test_flow_fetcher_populates_fields_from_connector(monkeypatch) -> None:
+    """When the connector yields a flow payload, the fetcher normalises it."""
+    from datetime import date
+
+    from tradingagents.data.sources import options_analytics as oa
+
+    monkeypatch.setenv("DATABENTO_API_KEY", "test-key")
+
+    class _StubConnector:
+        def connect(self) -> None:
+            return None
+
+        def _fetch_impl(self, ticker: str, params: dict) -> dict:  # noqa: ARG002
+            return {
+                "put_call_ratio": 0.7321,
+                "large_call_volume": 800,
+                "large_put_volume": 200,
+                "sentiment": "BULLISH",
+            }
+
+    # Replace the import inside _fetch_databento_flow.
+    import tradingagents.dataflows.connectors.databento_options_connector as mod
+
+    monkeypatch.setattr(mod, "DatabentoOptionsConnector", _StubConnector)
+    oa._reset_caches_for_tests()
+
+    result = oa._fetch_databento_flow("AAPL", date.today())
+    assert result is not None
+    assert result["flow_put_call_ratio"] == 0.7321
+    # (800 - 200) / (800 + 200) = 0.6
+    assert abs(result["large_trade_bias"] - 0.6) < 1e-9
+    assert result["trade_flow_source"] == "databento"
+
+
+@pytest.mark.unit
+def test_flow_fetcher_returns_none_on_connector_exception(monkeypatch) -> None:
+    """A connector failure must not propagate — the fetcher returns None."""
+    from datetime import date
+
+    from tradingagents.data.sources import options_analytics as oa
+
+    monkeypatch.setenv("DATABENTO_API_KEY", "test-key")
+
+    class _BrokenConnector:
+        def connect(self) -> None:
+            raise RuntimeError("simulated connector failure")
+
+    import tradingagents.dataflows.connectors.databento_options_connector as mod
+
+    monkeypatch.setattr(mod, "DatabentoOptionsConnector", _BrokenConnector)
+    oa._reset_caches_for_tests()
+
+    assert oa._fetch_databento_flow("AAPL", date.today()) is None
