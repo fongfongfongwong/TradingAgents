@@ -143,7 +143,10 @@ class DatabentoOptionsConnector(BaseConnector):
         put_call_ratio and iv_rank derived from the flow data.
         """
         lookback_days = params.get("lookback_days", 1)
-        end = datetime.now()
+        # Clip ``end`` to yesterday EOD to avoid Databento's publishing-lag
+        # 422 (see note in ``_fetch_flow``).
+        today = datetime.now().date()
+        end = datetime.combine(today - timedelta(days=1), datetime.min.time()) + timedelta(hours=23, minutes=59, seconds=59)
         start = end - timedelta(days=lookback_days)
 
         bbo_df = self._download_bbo(
@@ -199,7 +202,12 @@ class DatabentoOptionsConnector(BaseConnector):
         call-skew vs put-skew indicators.
         """
         lookback_days = params.get("lookback_days", 1)
-        end = datetime.now()
+        # Databento historical publishes with a lag — querying the current
+        # wall-clock ``end`` past their cutoff returns a 422. Clip ``end``
+        # to the end of yesterday (UTC) so the window always sits inside
+        # the available range.
+        today = datetime.now().date()
+        end = datetime.combine(today - timedelta(days=1), datetime.min.time()) + timedelta(hours=23, minutes=59, seconds=59)
         start = end - timedelta(days=lookback_days)
 
         trades_df = self._download_trades(
